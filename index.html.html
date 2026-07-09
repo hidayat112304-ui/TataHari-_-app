@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TataHari — Planner & Keuangan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAb1765vAGzh7iRUqRovwYGc0vuxSfxgfE",
+    authDomain: "tatahari-app.firebaseapp.com",
+    projectId: "tatahari-app",
+    storageBucket: "tatahari-app.firebasestorage.app",
+    messagingSenderId: "641414754504",
+    appId: "1:641414754504:web:6b62d540320a126925b5fd"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          cream: '#FAF8F3',
+          'cream-2': '#F2EEE4',
+          sky: '#DDEAF5',
+          'sky-mid': '#8FB4D1',
+          navy: '#274B6D',
+          'navy-dark': '#173350',
+          charcoal: '#26333E',
+          muted: '#69768A',
+          rust: '#C9927B',
+        },
+        fontFamily: {
+          serif: ['Fraunces', 'serif'],
+          sans: ['Inter', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; background-color: #FAF8F3; }
+  .font-serif { font-family: 'Fraunces', serif; }
+  ::selection { background: #DDEAF5; color: #173350; }
+  input, textarea { outline: none; }
+  input:focus, textarea:focus { box-shadow: 0 0 0 2px #8FB4D1; }
+  .tab-btn.active { background: #274B6D; color: #FAF8F3; }
+  .tab-btn { transition: all .2s ease; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  input[type="checkbox"].todo-check {
+    appearance: none; width: 18px; height: 18px; border: 1.5px solid #8FB4D1;
+    border-radius: 5px; cursor: pointer; position: relative; flex-shrink: 0;
+  }
+  input[type="checkbox"].todo-check:checked { background: #274B6D; border-color: #274B6D; }
+  input[type="checkbox"].todo-check:checked::after {
+    content: ''; position: absolute; left: 5px; top: 1px; width: 5px; height: 9px;
+    border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+  .icon-btn { color: #69768A; transition: color .2s ease; }
+  .icon-btn:hover { color: #C9927B; }
+  .save-pill { opacity: 0; transition: opacity .3s ease; }
+  .save-pill.show { opacity: 1; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade-up { animation: fadeUp .7s cubic-bezier(.2,.7,.2,1) both; }
+  .delay-1 { animation-delay: .05s; }
+  .delay-2 { animation-delay: .18s; }
+  .delay-3 { animation-delay: .30s; }
+  @keyframes pulseSlow { 0%,100% { opacity: .4; transform: scale(1); } 50% { opacity: .8; transform: scale(1.12); } }
+  .animate-pulse-slow { animation: pulseSlow 2.6s ease-in-out infinite; }
+
+  /* ===== Polish global: animasi & interaksi ===== */
+  body { animation: pageFadeIn .5s ease both; }
+  @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .panel > * { opacity: 0; }
+  .panel.active > * { animation: fadeUp .55s cubic-bezier(.2,.7,.2,1) both; }
+  .panel.active > *:nth-child(1) { animation-delay: .02s; }
+  .panel.active > *:nth-child(2) { animation-delay: .08s; }
+  .panel.active > *:nth-child(3) { animation-delay: .14s; }
+  .panel.active > *:nth-child(4) { animation-delay: .20s; }
+  .panel.active > *:nth-child(5) { animation-delay: .26s; }
+  .panel.active > *:nth-child(n+6) { animation-delay: .32s; }
+
+  button { transition: transform .15s ease, background-color .2s ease, box-shadow .2s ease, color .2s ease; }
+  button:active { transform: scale(0.96); }
+
+  .tab-btn { position: relative; }
+  .tab-btn.active { box-shadow: 0 4px 14px rgba(39,75,109,0.25); }
+  aside .tab-btn.active { box-shadow: 0 4px 14px rgba(39,75,109,0.25), inset 3px 0 0 #DDEAF5; }
+  aside .tab-btn { transition: transform .15s ease, background-color .2s ease, box-shadow .2s ease; }
+  aside .tab-btn:hover:not(.active) { transform: translateX(2px); }
+
+  input, textarea, select { transition: box-shadow .2s ease, background-color .2s ease; }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #B9D3E8; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8FB4D1; }
+
+  .todo-check { transition: background-color .2s ease, border-color .2s ease, transform .15s ease; }
+  .todo-check:active { transform: scale(0.9); }
+
+  /* ===== Efek 3D (murni CSS transform, ringan di GPU) ===== */
+  .card-3d {
+    box-shadow: 0 2px 10px rgba(39,75,109,0.07), 0 1px 2px rgba(39,75,109,0.05);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
+    transform: perspective(900px) rotateX(0deg) translateZ(0);
+    will-change: transform;
+  }
+  .card-3d:hover {
+    transform: perspective(900px) rotateX(2deg) translateY(-5px) translateZ(0);
+    box-shadow: 0 22px 34px -14px rgba(39,75,109,0.22), 0 4px 10px rgba(39,75,109,0.08);
+  }
+
+  .btn-3d {
+    box-shadow: 0 3px 0 0 #173350, 0 6px 14px rgba(39,75,109,0.25);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn-3d:hover { transform: translateY(-1px); box-shadow: 0 4px 0 0 #173350, 0 8px 16px rgba(39,75,109,0.28); }
+  .btn-3d:active { transform: translateY(3px); box-shadow: 0 0 0 0 #173350, 0 2px 6px rgba(39,75,109,0.2); }
+
+  .icon-3d {
+    background: linear-gradient(150deg, #EAF2F8 0%, #C9DCEC 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -3px 5px rgba(39,75,109,0.16), 0 3px 8px rgba(39,75,109,0.14);
+  }
+
+  .ring-3d { filter: drop-shadow(0 3px 6px rgba(39,75,109,0.18)); }
+
+  .hero-3d { transform-style: preserve-3d; perspective: 1000px; }
+  .hero-3d svg { transition: transform .6s ease; }
+  .hero-3d:hover svg:nth-of-type(1) { transform: translate3d(-6px,-6px,0) scale(1.04); }
+  .hero-3d:hover svg:nth-of-type(2) { transform: translate3d(6px,6px,0) scale(1.04); }
+
+  @media (max-width: 767px) {
+    .card-3d:hover { transform: none; }
+  }
+  input[type="date"], input[type="month"] { color: #26333E; }
+</style>
+</head>
+<body class="text-charcoal antialiased min-h-screen">
+
+<div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+  <svg class="absolute -top-32 -right-32 w-[460px] h-[460px] opacity-50" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#DDEAF5" d="M45.2,-58.4C57.9,-49.7,66.6,-33.9,70.1,-16.9C73.6,0.2,71.9,18.5,63.6,32.9C55.3,47.4,40.4,58,23.6,64.2C6.8,70.4,-11.9,72.2,-28.7,66.6C-45.6,61,-60.6,48,-67.7,31.6C-74.8,15.3,-74,-4.5,-66.5,-20.6C-59,-36.8,-44.8,-49.4,-29.5,-57.8C-14.2,-66.2,2.2,-70.4,17.9,-67.7C33.6,-65,32.6,-67.1,45.2,-58.4Z" transform="translate(100 100)" />
+  </svg>
+  <svg class="absolute top-[45%] -left-40 w-[480px] h-[480px] opacity-40" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#EAF2F8" d="M39.5,-51.6C50.9,-42.8,59.6,-29.9,63.4,-15.3C67.2,-0.7,66.1,15.6,58.9,28.9C51.7,42.2,38.4,52.5,23.5,58.6C8.6,64.7,-7.9,66.6,-23.4,62.1C-38.9,57.6,-53.4,46.7,-61.1,32.2C-68.8,17.7,-69.7,-0.4,-64.5,-16.2C-59.3,-32,-48,-45.5,-34.6,-53.9C-21.2,-62.3,-5.6,-65.6,8.7,-63.6C23,-61.6,28.1,-60.4,39.5,-51.6Z" transform="translate(100 100)" />
+  </svg>
+</div>
+
+<div class="md:flex">
+
+  <!-- SIDEBAR (desktop) -->
+  <aside class="hidden md:flex md:flex-col md:w-64 md:h-screen md:sticky md:top-0 bg-white border-r border-sky/60 px-5 py-6 shrink-0">
+    <div class="flex items-center gap-2 px-2 mb-8">
+      <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+        <circle cx="15" cy="15" r="7" fill="#274B6D"/>
+        <g stroke="#274B6D" stroke-width="1.8" stroke-linecap="round">
+          <line x1="15" y1="2" x2="15" y2="5.5"/>
+          <line x1="15" y1="24.5" x2="15" y2="28"/>
+          <line x1="2" y1="15" x2="5.5" y2="15"/>
+          <line x1="24.5" y1="15" x2="28" y2="15"/>
+          <line x1="5.6" y1="5.6" x2="8" y2="8"/>
+          <line x1="22" y1="22" x2="24.4" y2="24.4"/>
+          <line x1="5.6" y1="24.4" x2="8" y2="22"/>
+          <line x1="22" y1="8" x2="24.4" y2="5.6"/>
+        </g>
+      </svg>
+      <span class="font-serif text-lg font-semibold text-navy-dark">TataHari</span>
+    </div>
+
+    <nav class="flex flex-col gap-1">
+      <button data-tab="beranda" class="tab-btn active flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M1.5 6.5L7 2L12.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.5V12H11V5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Beranda
+      </button>
+      <button data-tab="harian" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12" stroke="currentColor" stroke-width="1.3"/></svg>
+        Rencana Harian
+      </button>
+      <button data-tab="mingguan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M2 10L5 6L7.5 8L12 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Prioritas Mingguan
+      </button>
+      <button data-tab="bulanan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 3V7L9.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Budget Bulanan
+      </button>
+      <button data-tab="tahunan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M1 11V1M1 11H13M4 9L6.5 6L8.5 8L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Keuangan Tahunan
+      </button>
+      <button data-tab="kalender" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12M5 1.5V3.5M9 1.5V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Kalender
+      </button>
+    </nav>
+
+    <div class="flex-1"></div>
+
+    <button id="syncCodeBadge" title="Klik untuk ganti kode sinkron" class="flex items-center justify-between gap-2 text-xs text-muted bg-cream-2 hover:bg-sky/60 rounded-xl px-3 py-2 mb-2 transition text-left">
+      <span class="truncate">Kode: <span id="syncCodeLabel" class="font-semibold text-navy-dark">-</span></span>
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <div id="savePillSidebar" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium px-2">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Tersimpan
+    </div>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+
+    <!-- HEADER (mobile) -->
+    <header class="md:hidden border-b border-sky bg-cream sticky top-0 z-20">
+      <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+            <circle cx="15" cy="15" r="7" fill="#274B6D"/>
+            <g stroke="#274B6D" stroke-width="1.8" stroke-linecap="round">
+              <line x1="15" y1="2" x2="15" y2="5.5"/>
+              <line x1="15" y1="24.5" x2="15" y2="28"/>
+              <line x1="2" y1="15" x2="5.5" y2="15"/>
+              <line x1="24.5" y1="15" x2="28" y2="15"/>
+              <line x1="5.6" y1="5.6" x2="8" y2="8"/>
+              <line x1="22" y1="22" x2="24.4" y2="24.4"/>
+              <line x1="5.6" y1="24.4" x2="8" y2="22"/>
+              <line x1="22" y1="8" x2="24.4" y2="5.6"/>
+            </g>
+          </svg>
+          <span class="font-serif text-lg font-semibold text-navy-dark">TataHari</span>
+        </div>
+        <div id="savePillMobile" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Tersimpan
+        </div>
+      </div>
+      <nav class="max-w-5xl mx-auto px-5 pb-3 flex gap-2 overflow-x-auto">
+        <button data-tab="beranda" class="tab-btn active whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 6.5L7 2L12.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.5V12H11V5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Beranda</button>
+        <button data-tab="harian" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12" stroke="currentColor" stroke-width="1.3"/></svg>
+          Rencana Harian</button>
+        <button data-tab="mingguan" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 10L5 6L7.5 8L12 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Prioritas Mingguan</button>
+        <button data-tab="bulanan" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 3V7L9.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Budget Bulanan</button>
+        <button data-tab="tahunan" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 11V1M1 11H13M4 9L6.5 6L8.5 8L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Keuangan Tahunan</button>
+        <button data-tab="kalender" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12M5 1.5V3.5M9 1.5V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Kalender</button>
+      </nav>
+    </header>
+
+    <!-- HEADER (desktop, dashboard style) -->
+    <header class="hidden md:flex items-center justify-between px-8 py-5 border-b border-sky/60 bg-cream sticky top-0 z-10">
+      <h1 id="pageTitle" class="font-serif text-xl text-navy-dark">Beranda</h1>
+      <div id="savePillDesktop" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Tersimpan
+      </div>
+    </header>
+
+<main class="max-w-5xl mx-auto px-5 py-8">
+
+  <!-- ============ BERANDA ============ -->
+  <section id="panel-beranda" class="panel active space-y-6">
+
+    <!-- HERO BANNER -->
+    <div class="relative overflow-hidden rounded-[2rem] px-6 sm:px-10 py-12 sm:py-16 text-center animate-fade-up hero-3d"
+         style="background: linear-gradient(135deg, #1D3A57 0%, #274B6D 55%, #4C7096 100%);">
+      <svg class="absolute -top-16 -left-16 w-64 h-64 opacity-20 pointer-events-none" viewBox="0 0 200 200"><circle cx="100" cy="100" r="100" fill="#DDEAF5"/></svg>
+      <svg class="absolute -bottom-24 -right-20 w-80 h-80 opacity-15 pointer-events-none" viewBox="0 0 200 200"><circle cx="100" cy="100" r="100" fill="#8FB4D1"/></svg>
+      <svg class="absolute top-6 right-8 w-8 h-8 opacity-40 pointer-events-none animate-pulse-slow" viewBox="0 0 18 18" fill="none"><path d="M9 1L10.5 6.5L16 8L10.5 9.5L9 15L7.5 9.5L2 8L7.5 6.5L9 1Z" fill="#DDEAF5"/></svg>
+
+      <p id="berandaDate" class="relative text-xs text-sky/80 font-medium tracking-wide mb-2"></p>
+      <p id="berandaGreeting" class="relative text-xs text-sky font-semibold tracking-[0.2em] uppercase mb-4"></p>
+      <h1 class="relative font-serif text-3xl sm:text-5xl text-cream mb-4 leading-tight">Selamat Datang di TataHari! ✨</h1>
+      <p id="berandaTagline" class="relative text-sky/90 text-base sm:text-lg leading-relaxed max-w-lg mx-auto"></p>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="grid sm:grid-cols-3 gap-5">
+      <div class="animate-fade-up delay-1 group bg-white rounded-3xl border border-sky/60 card-3d p-6 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-muted font-semibold uppercase tracking-wide">Tugas Hari Ini</p>
+          <svg class="w-11 h-11 -rotate-90 ring-3d" viewBox="0 0 36 36">
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#DDEAF5" stroke-width="3.2"/>
+            <path id="berandaTaskRing" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#274B6D" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="0, 100"/>
+          </svg>
+        </div>
+        <p id="berandaTaskStatus" class="font-serif text-xl text-navy-dark leading-snug">Memuat…</p>
+        <button data-goto="harian" class="text-xs font-semibold text-navy hover:underline self-start mt-auto flex items-center gap-1">Lihat rencana harian <span class="transition-transform group-hover:translate-x-0.5">→</span></button>
+      </div>
+
+      <div class="animate-fade-up delay-2 group bg-white rounded-3xl border border-sky/60 card-3d p-6 flex flex-col gap-3">
+        <div class="w-11 h-11 rounded-2xl flex items-center justify-center icon-3d">
+          <svg width="19" height="19" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6.5" stroke="#274B6D" stroke-width="1.3"/><path d="M9 4.5V9L12 11" stroke="#274B6D" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <p class="text-xs text-muted font-semibold uppercase tracking-wide">Sisa Budget Bulan Ini</p>
+        <p id="berandaBudgetStatus" class="font-serif text-xl text-navy-dark leading-snug">Memuat…</p>
+        <button data-goto="bulanan" class="text-xs font-semibold text-navy hover:underline self-start mt-auto flex items-center gap-1">Lihat budget bulanan <span class="transition-transform group-hover:translate-x-0.5">→</span></button>
+      </div>
+
+      <div class="animate-fade-up delay-3 group bg-white rounded-3xl border border-sky/60 card-3d p-6 flex flex-col gap-3">
+        <div class="w-11 h-11 rounded-2xl flex items-center justify-center icon-3d">
+          <svg width="19" height="19" viewBox="0 0 18 18" fill="none"><path d="M9 2L10.5 6.5L15 8L10.5 9.5L9 14L7.5 9.5L3 8L7.5 6.5L9 2Z" stroke="#274B6D" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="text-xs text-muted font-semibold uppercase tracking-wide">Kutipan Hari Ini</p>
+        <p id="berandaQuote" class="font-serif text-base text-navy-dark leading-relaxed italic">Memuat…</p>
+        <button id="berandaQuoteRefresh" class="text-xs font-semibold text-navy hover:underline self-start mt-auto flex items-center gap-1">Kutipan lain <span class="inline-block">↻</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HARIAN ============ -->
+  <section id="panel-harian" class="panel space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-3xl border border-sky/60 card-3d p-4">
+      <button id="dayPrev" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9L11 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="text-center flex-1 min-w-[160px]">
+        <p id="dayLabel" class="font-serif text-lg text-navy-dark"></p>
+        <button id="dayToday" class="text-xs text-sky-mid font-medium hover:underline">Ke hari ini</button>
+      </div>
+      <input id="dayPicker" type="date" class="bg-cream-2 rounded-xl px-3 py-2 text-sm">
+      <button id="dayNext" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="resetHarian" title="Reset data hari ini" class="icon-btn p-2 hover:text-rust"><svg width="17" height="17" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div id="carryOverCard" class="hidden bg-sky/40 rounded-3xl border border-sky p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-serif text-lg text-navy-dark">Tugas Kemarin yang Belum Selesai</h2>
+        <button id="carryOverAll" class="text-xs font-semibold text-navy hover:underline">Pindahkan semua</button>
+      </div>
+      <div id="carryOverList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">Top 3 Prioritas Hari Ini</h2>
+      <div id="dailyTop3" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">To-do List</h2>
+      <div class="flex gap-2 mb-4">
+        <input id="dailyTodoInput" type="text" placeholder="Tambah tugas baru…" class="flex-1 bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
+        <button id="dailyTodoAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
+      </div>
+      <div id="dailyTodoList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-serif text-lg text-navy-dark">Jadwal Kegiatan</h2>
+        <span class="text-xs text-muted">Diurutkan otomatis per jam</span>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <input id="schedTimeInput" type="time" value="08:00" class="bg-cream-2 rounded-xl px-3 py-2.5 text-sm w-32">
+        <input id="schedTextInput" type="text" placeholder="Nama kegiatan…" class="flex-1 min-w-[160px] bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
+        <button id="schedAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
+      </div>
+      <div id="dailySchedule" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-3">Catatan & Refleksi</h2>
+      <textarea id="dailyNotes" rows="4" placeholder="Bagaimana harimu? Apa yang bisa disyukuri atau diperbaiki?" class="w-full bg-cream-2 rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+    </div>
+  </section>
+
+  <!-- ============ MINGGUAN ============ -->
+  <section id="panel-mingguan" class="panel space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-3xl border border-sky/60 card-3d p-4">
+      <button id="weekPrev" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9L11 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="text-center flex-1 min-w-[160px]">
+        <p id="weekLabel" class="font-serif text-lg text-navy-dark"></p>
+        <button id="weekToday" class="text-xs text-sky-mid font-medium hover:underline">Ke minggu ini</button>
+      </div>
+      <input id="weekPicker" type="date" class="bg-cream-2 rounded-xl px-3 py-2 text-sm">
+      <button id="weekNext" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="resetMingguan" title="Reset data minggu ini" class="icon-btn p-2 hover:text-rust"><svg width="17" height="17" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">Top 3 Prioritas Mingguan</h2>
+      <div id="weeklyTop3" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-3">Fokus Minggu Ini</h2>
+      <input id="weeklyFocus" type="text" placeholder="Satu kalimat fokus utama minggu ini…" class="w-full bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">To-do List Mingguan</h2>
+      <div class="flex gap-2 mb-4">
+        <input id="weeklyTodoInput" type="text" placeholder="Tambah tugas minggu ini…" class="flex-1 bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
+        <button id="weeklyTodoAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
+      </div>
+      <div id="weeklyTodoList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-3">Catatan</h2>
+      <textarea id="weeklyNotes" rows="4" placeholder="Catatan tambahan untuk minggu ini…" class="w-full bg-cream-2 rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+    </div>
+  </section>
+
+  <!-- ============ BULANAN ============ -->
+  <section id="panel-bulanan" class="panel space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-3xl border border-sky/60 card-3d p-4">
+      <button id="monthPrev" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9L11 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <p id="monthLabel" class="font-serif text-lg text-navy-dark flex-1 text-center min-w-[140px]"></p>
+      <input id="monthPicker" type="month" class="bg-cream-2 rounded-xl px-3 py-2 text-sm">
+      <button id="monthNext" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="resetBulanan" title="Reset data bulan ini" class="icon-btn p-2 hover:text-rust"><svg width="17" height="17" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="font-serif text-lg text-navy-dark">Ringkasan Bulan Ini</h2>
+        <button id="downloadExcel" class="flex items-center gap-2 bg-navy text-cream text-sm font-semibold px-4 py-2 rounded-xl hover:bg-navy-dark btn-3d">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1V10M7.5 10L4 6.5M7.5 10L11 6.5" stroke="#FAF8F3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12V13.5H13V12" stroke="#FAF8F3" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Unduh Excel
+        </button>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div class="bg-cream-2 rounded-xl px-4 py-2.5">
+          <label class="text-xs text-muted font-medium">Total Pemasukan</label>
+          <p id="monthIncomeTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
+          <p class="text-[10px] text-muted mt-0.5">Termasuk hutang diterima & piutang lunas</p>
+        </div>
+        <div class="bg-cream-2 rounded-xl px-4 py-2.5">
+          <label class="text-xs text-muted font-medium">Total Pengeluaran</label>
+          <p id="monthExpenseTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
+          <p class="text-[10px] text-muted mt-0.5">Termasuk tagihan & hutang terbayar + piutang belum diterima</p>
+        </div>
+        <div class="bg-sky rounded-xl px-4 py-2.5">
+          <label class="text-xs text-navy-dark/70 font-medium">Sisa / Tabungan</label>
+          <p id="monthRemaining" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-serif text-lg text-navy-dark">Daftar Pemasukan</h2>
+        <span class="text-xs text-muted">Bisa dicatat berkali-kali dalam sebulan</span>
+      </div>
+      <div class="flex gap-2 mb-4">
+        <input id="incomeName" type="text" list="incomeHistoryList" placeholder="Sumber (mis. Gaji, Bonus, Freelance)" class="flex-1 bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <datalist id="incomeHistoryList"></datalist>
+        <input id="incomeAmount" type="number" min="0" placeholder="Jumlah" class="w-28 bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <button id="incomeAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">+</button>
+      </div>
+      <div id="incomeList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">Alokasi Kategori</h2>
+      <div class="grid md:grid-cols-2 gap-6 items-start">
+        <div>
+          <div class="flex gap-2 mb-4">
+            <input id="catName" type="text" list="categoryHistoryList" placeholder="Nama kategori" class="flex-1 bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+            <datalist id="categoryHistoryList"></datalist>
+            <input id="catAmount" type="number" min="0" placeholder="Jumlah" class="w-28 bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+            <button id="catAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">+</button>
+          </div>
+          <div id="catList" class="space-y-2"></div>
+        </div>
+        <div class="flex flex-col items-center justify-center py-4">
+          <canvas id="donutChart" width="200" height="200" class="ring-3d"></canvas>
+          <p id="donutEmpty" class="text-sm text-muted mt-3 text-center">Tambahkan kategori untuk melihat grafik alokasi</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="font-serif text-lg text-navy-dark">Tagihan Bulan Ini</h2>
+        <div class="flex gap-4 text-xs">
+          <span class="text-muted">Belum dibayar: <span id="billsUnpaidTotal" class="font-semibold text-rust">Rp0</span></span>
+          <span class="text-muted">Sudah dibayar: <span id="billsPaidTotal" class="font-semibold text-navy">Rp0</span></span>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <input id="billName" type="text" list="billHistoryList" placeholder="Nama tagihan (mis. Listrik)" class="flex-1 min-w-[140px] bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <datalist id="billHistoryList"></datalist>
+        <input id="billAmount" type="number" min="0" placeholder="Jumlah" class="w-28 bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <input id="billDue" type="date" class="bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <button id="billAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
+      </div>
+      <div id="billList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="font-serif text-lg text-navy-dark">Hutang & Piutang</h2>
+        <div class="flex gap-4 text-xs">
+          <span class="text-muted">Hutang belum lunas: <span id="debtsHutangTotal" class="font-semibold text-rust">Rp0</span></span>
+          <span class="text-muted">Piutang belum diterima: <span id="debtsPiutangTotal" class="font-semibold text-navy">Rp0</span></span>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <select id="debtType" class="bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+          <option value="hutang">Hutang (saya berutang)</option>
+          <option value="piutang">Piutang (orang berutang ke saya)</option>
+        </select>
+        <input id="debtName" type="text" list="debtHistoryList" placeholder="Nama / keterangan" class="flex-1 min-w-[140px] bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <datalist id="debtHistoryList"></datalist>
+        <input id="debtAmount" type="number" min="0" placeholder="Jumlah" class="w-28 bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <input id="debtDue" type="date" class="bg-cream-2 rounded-xl px-3 py-2.5 text-sm">
+        <button id="debtAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
+      </div>
+      <p class="text-xs text-muted mb-3">Hutang yang belum lunas otomatis menambah saldo (uangnya sudah kamu pegang), dan mengurangi saldo begitu dicentang lunas. Piutang yang belum diterima otomatis mengurangi saldo (uang sudah kamu pinjamkan), dan menambah saldo begitu dicentang lunas.</p>
+      <div id="debtList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-3">Catatan Pengeluaran</h2>
+      <textarea id="monthNotes" rows="3" placeholder="Catatan bebas soal pengeluaran bulan ini…" class="w-full bg-cream-2 rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+    </div>
+  </section>
+
+  <!-- ============ TAHUNAN ============ -->
+  <section id="panel-tahunan" class="panel space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-3xl border border-sky/60 card-3d p-4">
+      <button id="yearPrev" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9L11 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <p id="yearLabel" class="font-serif text-lg text-navy-dark flex-1 text-center"></p>
+      <input id="yearPicker" type="number" min="2000" max="2100" class="bg-cream-2 rounded-xl px-3 py-2 text-sm w-24">
+      <button id="yearNext" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="resetTahunan" title="Reset evaluasi & target tahun ini" class="icon-btn p-2 hover:text-rust"><svg width="17" height="17" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">Ringkasan Tahunan</h2>
+      <p class="text-xs text-muted mb-4">Dihitung otomatis dari data Budget Bulanan yang sudah kamu isi tahun ini.</p>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div class="bg-cream-2 rounded-xl px-4 py-2.5">
+          <label class="text-xs text-muted font-medium">Total Pemasukan</label>
+          <p id="yearIncomeTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
+        </div>
+        <div class="bg-cream-2 rounded-xl px-4 py-2.5">
+          <label class="text-xs text-muted font-medium">Total Pengeluaran</label>
+          <p id="yearExpenseTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
+        </div>
+        <div class="bg-sky rounded-xl px-4 py-2.5">
+          <label class="text-xs text-navy-dark/70 font-medium">Total Tabungan</label>
+          <p id="yearSavingTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">Grafik Tren Keuangan</h2>
+      <canvas id="trendChart" width="600" height="220" class="w-full"></canvas>
+      <div class="flex gap-4 mt-3 text-xs text-muted">
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#8FB4D1"></span>Pemasukan</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#274B6D"></span>Pengeluaran</span>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-3">Evaluasi</h2>
+      <textarea id="yearEval" rows="3" placeholder="Apa yang berjalan baik dan tidak tahun ini?" class="w-full bg-cream-2 rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+    </div>
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-3">Target Tahun Depan</h2>
+      <textarea id="yearTarget" rows="3" placeholder="Target keuangan & kebiasaan untuk tahun berikutnya…" class="w-full bg-cream-2 rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+    </div>
+  </section>
+
+  <!-- ============ KALENDER ============ -->
+  <section id="panel-kalender" class="panel space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-3xl border border-sky/60 card-3d p-4">
+      <button id="calPrev" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9L11 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <p id="calLabel" class="font-serif text-lg text-navy-dark flex-1 text-center min-w-[140px]"></p>
+      <input id="calPicker" type="month" class="bg-cream-2 rounded-xl px-3 py-2 text-sm">
+      <button id="calNext" class="icon-btn p-2"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="resetKalender" title="Reset penanda bulan ini" class="icon-btn p-2 hover:text-rust"><svg width="17" height="17" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="grid grid-cols-7 gap-1.5 mb-2 text-center text-xs font-semibold text-muted">
+        <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+      </div>
+      <div id="calGrid" class="grid grid-cols-7 gap-1.5"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 id="calSelectedLabel" class="font-serif text-lg text-navy-dark mb-4">Pilih tanggal di kalender</h2>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <input id="calLabelInput" type="text" placeholder="Nama hari penting / mulai kegiatan…" class="flex-1 min-w-[180px] bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
+        <button id="calAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
+      </div>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-xs text-muted mr-1">Warna:</span>
+        <button class="cal-color-swatch w-6 h-6 rounded-full ring-2 ring-navy-dark" data-color="#274B6D" style="background:#274B6D"></button>
+        <button class="cal-color-swatch w-6 h-6 rounded-full" data-color="#8FB4D1" style="background:#8FB4D1"></button>
+        <button class="cal-color-swatch w-6 h-6 rounded-full" data-color="#C9927B" style="background:#C9927B"></button>
+        <button class="cal-color-swatch w-6 h-6 rounded-full" data-color="#69768A" style="background:#69768A"></button>
+      </div>
+      <div id="calMarkList" class="space-y-2"></div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <h2 class="font-serif text-lg text-navy-dark mb-4">Semua Hari Penting Bulan Ini</h2>
+      <div id="calMonthList" class="space-y-2"></div>
+    </div>
+  </section>
+
+</main>
+
+  </div>
+</div>
+
+<!-- ===================== SYNC CODE GATE ===================== -->
+<div id="syncGate" class="fixed inset-0 z-50 bg-navy-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-cream w-full max-w-sm rounded-3xl border border-sky/60 p-6 shadow-xl">
+    <h2 class="font-serif text-lg text-navy-dark mb-1">Kode Sinkron</h2>
+    <p class="text-sm text-muted mb-4">Buat kode bebas (contoh: nama kamu + angka). Masukkan kode yang <b>sama persis</b> di semua perangkat (HP & laptop) supaya datanya nyambung.</p>
+    <input id="syncCodeInput" type="text" placeholder="contoh: budi2026" class="w-full px-3 py-2.5 rounded-xl border border-sky-mid/60 bg-white mb-3 text-sm" autocomplete="off" autocapitalize="off" />
+    <button id="syncCodeSubmit" class="w-full bg-navy hover:bg-navy-dark text-white text-sm font-medium py-2.5 rounded-xl transition">Simpan & Buka Aplikasi</button>
+    <p id="syncCodeError" class="text-xs text-rust mt-2 hidden">Kode gak boleh kosong ya.</p>
+  </div>
+</div>
+
+<script>
+/* ===================== SYNC CODE (menghubungkan perangkat via Firestore) ===================== */
+let SYNC_CODE = localStorage.getItem('tatahari_sync_code') || '';
+let dataCache = {};
+let docRef = null;
+
+function sanitizeSyncCode(v) {
+  return (v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+}
+
+async function ensureSyncCode() {
+  const gate = document.getElementById('syncGate');
+  if (SYNC_CODE) {
+    gate.classList.add('hidden');
+    return SYNC_CODE;
+  }
+  return new Promise((resolve) => {
+    gate.classList.remove('hidden');
+    const input = document.getElementById('syncCodeInput');
+    const btn = document.getElementById('syncCodeSubmit');
+    const err = document.getElementById('syncCodeError');
+    const submit = () => {
+      const code = sanitizeSyncCode(input.value);
+      if (!code) { err.classList.remove('hidden'); return; }
+      localStorage.setItem('tatahari_sync_code', code);
+      SYNC_CODE = code;
+      gate.classList.add('hidden');
+      resolve(code);
+    };
+    btn.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    input.focus();
+  });
+}
+
+async function initFirestore() {
+  await ensureSyncCode();
+  docRef = db.collection('tatahari_sync').doc(SYNC_CODE);
+  try {
+    const snap = await docRef.get();
+    dataCache = snap.exists ? (snap.data() || {}) : {};
+  } catch (e) {
+    console.error('Gagal memuat data dari server', e);
+    dataCache = {};
+  }
+  const label = document.getElementById('syncCodeLabel');
+  if (label) label.textContent = SYNC_CODE;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const badge = document.getElementById('syncCodeBadge');
+  if (badge) {
+    badge.addEventListener('click', () => {
+      const baru = prompt('Masukkan kode sinkron baru (harus sama persis di semua perangkat):', SYNC_CODE);
+      if (baru === null) return;
+      const code = sanitizeSyncCode(baru);
+      if (!code) return alert('Kode gak boleh kosong.');
+      localStorage.setItem('tatahari_sync_code', code);
+      location.reload();
+    });
+  }
+});
+
+/* ===================== STORAGE HELPERS (Firestore, sync antar perangkat) ===================== */
+async function loadKey(key, fallback) {
+  try {
+    const raw = dataCache[key];
+    return raw !== undefined && raw !== null ? JSON.parse(raw) : fallback;
+  } catch (e) { return fallback; }
+}
+async function saveKey(key, value) {
+  try {
+    const raw = JSON.stringify(value);
+    dataCache[key] = raw;
+    await docRef.set({ [key]: raw }, { merge: true });
+    flashSaved();
+  } catch (e) { console.error('Gagal menyimpan', e); }
+}
+async function removeKey(key) {
+  try {
+    delete dataCache[key];
+    await docRef.update({ [key]: firebase.firestore.FieldValue.delete() });
+    flashSaved();
+  } catch (e) { console.error('Gagal menghapus', e); }
+}
+
+/* ===================== RIWAYAT NAMA (autocomplete lintas bulan) ===================== */
+async function addToHistory(histKey, value) {
+  if (!value || !value.trim()) return;
+  const v = value.trim();
+  let list = await loadKey(histKey, []);
+  list = list.filter(x => x.toLowerCase() !== v.toLowerCase());
+  list.unshift(v);
+  if (list.length > 40) list = list.slice(0, 40);
+  await saveKey(histKey, list);
+}
+async function renderHistoryDatalist(histKey, datalistId) {
+  const list = await loadKey(histKey, []);
+  const dl = document.getElementById(datalistId);
+  if (!dl) return;
+  dl.innerHTML = list.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+}
+let saveTimer = null;
+function flashSaved() {
+  document.querySelectorAll('.save-pill').forEach(pill => pill.classList.add('show'));
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    document.querySelectorAll('.save-pill').forEach(pill => pill.classList.remove('show'));
+  }, 1200);
+}
+function debounce(fn, delay) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function rupiah(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+/* ===================== DATE HELPERS ===================== */
+function fmtDate(d) { return d.toISOString().slice(0, 10); }
+function parseDateInput(str) { return new Date(str + 'T00:00:00'); }
+function mondayOf(d) {
+  const nd = new Date(d);
+  const day = nd.getDay() || 7;
+  nd.setDate(nd.getDate() - day + 1);
+  nd.setHours(0,0,0,0);
+  return nd;
+}
+function isoWeekKey(mondayDate) {
+  const d = new Date(Date.UTC(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2,'0')}`;
+}
+const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+/* ===================== TAB SWITCHING ===================== */
+const TAB_LABELS = {
+  beranda: 'Beranda',
+  harian: 'Rencana Harian',
+  mingguan: 'Prioritas Mingguan',
+  bulanan: 'Budget Bulanan',
+  tahunan: 'Keuangan Tahunan',
+  kalender: 'Kalender',
+};
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) titleEl.textContent = TAB_LABELS[tab] || '';
+    if (tab === 'beranda') renderBeranda();
+  });
+});
+document.querySelectorAll('[data-goto]').forEach(el => {
+  el.addEventListener('click', () => {
+    const target = document.querySelector(`.tab-btn[data-tab="${el.dataset.goto}"]`);
+    if (target) target.click();
+  });
+});
+
+/* ===================== BERANDA ===================== */
+const BERANDA_TAGLINES = [
+  'Mari tata harimu dengan lebih teratur, tenang, dan penuh makna. Setiap langkah kecil hari ini adalah investasi untuk masa depanmu.',
+  'Hari baru, halaman baru. Susun prioritasmu, dan biarkan harimu berjalan lebih tenang.',
+  'Tidak perlu sempurna, cukup konsisten. Satu per satu, harimu akan lebih tertata.',
+  'Waktumu berharga. Rencanakan dengan lembut, jalani dengan penuh kesadaran.',
+];
+const BERANDA_QUOTES = [
+  'Langkah kecil yang konsisten mengalahkan rencana besar yang tak pernah dimulai.',
+  'Hari yang tertata dimulai dari satu keputusan sederhana: mulai sekarang.',
+  'Kamu tidak harus terburu-buru. Kamu hanya perlu terus bergerak maju.',
+  'Ketenangan dalam mengatur hari adalah bentuk lain dari produktivitas.',
+  'Uang yang dicatat adalah uang yang dikendalikan, bukan yang mengendalikanmu.',
+  'Istirahat juga bagian dari rencana, bukan pengecualian darinya.',
+  'Yang kamu ukur, akan kamu perbaiki. Yang kamu catat, akan kamu ingat.',
+  'Rapi bukan soal sempurna, tapi soal tahu ke mana harus melangkah selanjutnya.',
+];
+
+async function renderBeranda() {
+  const now = new Date();
+  const hour = now.getHours();
+  const sapaan = hour < 11 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 19 ? 'Selamat Sore' : 'Selamat Malam';
+  document.getElementById('berandaGreeting').textContent = sapaan;
+  document.getElementById('berandaDate').textContent =
+    `${HARI[now.getDay()]}, ${now.getDate()} ${BULAN[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('berandaTagline').textContent =
+    BERANDA_TAGLINES[Math.floor(Math.random() * BERANDA_TAGLINES.length)];
+
+  // Status tugas hari ini (tanggal asli hari ini)
+  const todayKey = 'daily:' + fmtDate(now);
+  const todayData = await loadKey(todayKey, { todos: [] });
+  const todos = Array.isArray(todayData.todos) ? todayData.todos : [];
+  const doneCount = todos.filter(t => t.done).length;
+  const pending = todos.length - doneCount;
+  const taskEl = document.getElementById('berandaTaskStatus');
+  if (todos.length === 0) {
+    taskEl.textContent = 'Belum ada tugas hari ini';
+  } else if (pending === 0) {
+    taskEl.textContent = 'Semua tugas selesai! 🎉';
+  } else {
+    taskEl.textContent = `${pending} tugas belum selesai`;
+  }
+  const ringPercent = todos.length === 0 ? 0 : Math.round((doneCount / todos.length) * 100);
+  const ring = document.getElementById('berandaTaskRing');
+  if (ring) ring.setAttribute('stroke-dasharray', `${ringPercent}, 100`);
+
+  // Sisa budget bulan ini (bulan berjalan sesungguhnya)
+  const mKey = monthKey(now.getFullYear(), now.getMonth());
+  const mData = await loadKey(mKey, { incomes: [], categories: [], bills: [], debts: [] });
+  const debtEffectHome = debtsPaidTotals(mData);
+  const totalExpense = (mData.categories || []).reduce((s, c) => s + (Number(c.amount) || 0), 0) + billsPaidTotal(mData) + debtEffectHome.expense;
+  const sisa = (totalIncome(mData) + debtEffectHome.income) - totalExpense;
+  document.getElementById('berandaBudgetStatus').textContent = rupiah(sisa);
+
+  // Kutipan
+  renderRandomQuote();
+
+  document.getElementById('berandaQuoteRefresh').onclick = renderRandomQuote;
+}
+
+function renderRandomQuote() {
+  const q = BERANDA_QUOTES[Math.floor(Math.random() * BERANDA_QUOTES.length)];
+  document.getElementById('berandaQuote').textContent = `"${q}"`;
+}
+
+/* ===================== HARIAN ===================== */
+let currentDay = new Date();
+async function renderDaily() {
+  const key = 'daily:' + fmtDate(currentDay);
+  document.getElementById('dayLabel').textContent =
+    `${HARI[currentDay.getDay()]}, ${currentDay.getDate()} ${BULAN[currentDay.getMonth()]} ${currentDay.getFullYear()}`;
+  document.getElementById('dayPicker').value = fmtDate(currentDay);
+
+  const raw = await loadKey(key, { top3: ['', '', ''], todos: [], schedule: [], notes: '' });
+  const data = { ...raw, schedule: Array.isArray(raw.schedule) ? raw.schedule : [] };
+
+  // Top 3
+  const top3Box = document.getElementById('dailyTop3');
+  top3Box.innerHTML = '';
+  data.top3.forEach((val, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-3';
+    wrap.innerHTML = `<span class="w-6 h-6 rounded-full bg-sky text-navy-dark text-xs font-bold flex items-center justify-center shrink-0">${i+1}</span>
+      <input type="text" value="${escapeHtml(val)}" placeholder="Prioritas #${i+1}" class="flex-1 bg-cream-2 rounded-xl px-4 py-2 text-sm">`;
+    const input = wrap.querySelector('input');
+    input.addEventListener('input', debounce(async () => {
+      data.top3[i] = input.value;
+      await saveKey(key, data);
+    }, 500));
+    top3Box.appendChild(wrap);
+  });
+
+  // Todos
+  renderTodoList('dailyTodoList', data.todos, async (todos) => { data.todos = todos; await saveKey(key, data); });
+
+  // Schedule (dynamic, editable)
+  renderSchedule(data, key);
+
+  // Notes
+  const notesEl = document.getElementById('dailyNotes');
+  notesEl.value = data.notes || '';
+  notesEl.oninput = debounce(async () => { data.notes = notesEl.value; await saveKey(key, data); }, 500);
+
+  // Todo add
+  const addBtn = document.getElementById('dailyTodoAdd');
+  const addInput = document.getElementById('dailyTodoInput');
+  addBtn.onclick = async () => {
+    if (!addInput.value.trim()) return;
+    data.todos.push({ id: uid(), text: addInput.value.trim(), done: false });
+    addInput.value = '';
+    await saveKey(key, data);
+    renderTodoList('dailyTodoList', data.todos, async (todos) => { data.todos = todos; await saveKey(key, data); });
+  };
+  addInput.onkeydown = (e) => { if (e.key === 'Enter') addBtn.click(); };
+
+  // Schedule add
+  document.getElementById('schedAdd').onclick = async () => {
+    const timeEl = document.getElementById('schedTimeInput');
+    const textEl = document.getElementById('schedTextInput');
+    if (!textEl.value.trim()) return;
+    data.schedule.push({ id: uid(), time: timeEl.value || '00:00', text: textEl.value.trim() });
+    textEl.value = '';
+    await saveKey(key, data);
+    renderSchedule(data, key);
+  };
+
+  renderCarryOver(currentDay, data, key);
+}
+
+async function renderCarryOver(today, todayData, todayKey) {
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yKey = 'daily:' + fmtDate(yesterday);
+  const yData = await loadKey(yKey, null);
+  const card = document.getElementById('carryOverCard');
+  const list = document.getElementById('carryOverList');
+
+  if (!yData || !Array.isArray(yData.todos)) { card.classList.add('hidden'); return; }
+  const pending = yData.todos.filter(t => !t.done && !t.carried);
+  if (pending.length === 0) { card.classList.add('hidden'); return; }
+
+  card.classList.remove('hidden');
+  list.innerHTML = '';
+  pending.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3';
+    row.innerHTML = `<span class="flex-1 text-sm text-navy-dark">${escapeHtml(t.text)}</span>
+      <button class="text-xs font-semibold text-navy bg-white px-3 py-1.5 rounded-lg hover:bg-cream-2 shrink-0">Pindahkan</button>`;
+    row.querySelector('button').onclick = async () => {
+      todayData.todos.push({ id: uid(), text: t.text, done: false });
+      t.carried = true;
+      await saveKey(todayKey, todayData);
+      await saveKey(yKey, yData);
+      renderTodoList('dailyTodoList', todayData.todos, async (todos) => { todayData.todos = todos; await saveKey(todayKey, todayData); });
+      renderCarryOver(today, todayData, todayKey);
+    };
+    list.appendChild(row);
+  });
+
+  document.getElementById('carryOverAll').onclick = async () => {
+    pending.forEach(t => {
+      todayData.todos.push({ id: uid(), text: t.text, done: false });
+      t.carried = true;
+    });
+    await saveKey(todayKey, todayData);
+    await saveKey(yKey, yData);
+    renderTodoList('dailyTodoList', todayData.todos, async (todos) => { todayData.todos = todos; await saveKey(todayKey, todayData); });
+    renderCarryOver(today, todayData, todayKey);
+  };
+}
+
+function renderSchedule(data, key) {
+  const box = document.getElementById('dailySchedule');
+  box.innerHTML = '';
+  const sorted = [...data.schedule].sort((a, b) => a.time.localeCompare(b.time));
+  if (sorted.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada kegiatan terjadwal.</p>';
+    return;
+  }
+  sorted.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 group';
+    row.innerHTML = `
+      <input type="time" value="${entry.time}" class="bg-cream-2 rounded-lg px-2 py-1.5 text-sm w-28 shrink-0">
+      <input type="text" value="${escapeHtml(entry.text)}" placeholder="Kegiatan…" class="flex-1 bg-cream-2 rounded-lg px-3 py-1.5 text-sm">
+      <button class="icon-btn opacity-0 group-hover:opacity-100 p-1 shrink-0">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    const timeInput = row.querySelector('input[type="time"]');
+    const textInput = row.querySelector('input[type="text"]');
+    timeInput.addEventListener('change', debounce(async () => {
+      entry.time = timeInput.value;
+      await saveKey(key, data);
+      renderSchedule(data, key);
+    }, 300));
+    textInput.addEventListener('input', debounce(async () => {
+      entry.text = textInput.value;
+      await saveKey(key, data);
+    }, 500));
+    row.querySelector('button').onclick = async () => {
+      data.schedule = data.schedule.filter(e => e.id !== entry.id);
+      await saveKey(key, data);
+      renderSchedule(data, key);
+    };
+    box.appendChild(row);
+  });
+}
+
+function renderTodoList(containerId, todos, onChange) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = '';
+  if (todos.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada tugas.</p>';
+    return;
+  }
+  todos.forEach(todo => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 group';
+    row.innerHTML = `
+      <input type="checkbox" class="todo-check" ${todo.done ? 'checked' : ''}>
+      <span class="flex-1 text-sm ${todo.done ? 'line-through text-muted' : ''}">${escapeHtml(todo.text)}</span>
+      <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    row.querySelector('.todo-check').onchange = (e) => {
+      todo.done = e.target.checked;
+      onChange(todos);
+      row.querySelector('span').classList.toggle('line-through', todo.done);
+      row.querySelector('span').classList.toggle('text-muted', todo.done);
+    };
+    row.querySelector('button').onclick = () => {
+      const idx = todos.findIndex(t => t.id === todo.id);
+      todos.splice(idx, 1);
+      onChange(todos);
+      renderTodoList(containerId, todos, onChange);
+    };
+    box.appendChild(row);
+  });
+}
+
+document.getElementById('dayPrev').onclick = () => { currentDay.setDate(currentDay.getDate() - 1); renderDaily(); };
+document.getElementById('dayNext').onclick = () => { currentDay.setDate(currentDay.getDate() + 1); renderDaily(); };
+document.getElementById('dayToday').onclick = () => { currentDay = new Date(); renderDaily(); };
+document.getElementById('dayPicker').onchange = (e) => { currentDay = parseDateInput(e.target.value); renderDaily(); };
+
+/* ===================== MINGGUAN ===================== */
+let currentWeekStart = mondayOf(new Date());
+async function renderWeekly() {
+  const wKey = isoWeekKey(currentWeekStart);
+  const key = 'weekly:' + wKey;
+  const end = new Date(currentWeekStart); end.setDate(end.getDate() + 6);
+  document.getElementById('weekLabel').textContent =
+    `${currentWeekStart.getDate()} ${BULAN[currentWeekStart.getMonth()]} – ${end.getDate()} ${BULAN[end.getMonth()]} (${wKey})`;
+  document.getElementById('weekPicker').value = fmtDate(currentWeekStart);
+
+  const data = await loadKey(key, { top3: ['', '', ''], focus: '', todos: [], notes: '' });
+
+  const top3Box = document.getElementById('weeklyTop3');
+  top3Box.innerHTML = '';
+  data.top3.forEach((val, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-3';
+    wrap.innerHTML = `<span class="w-6 h-6 rounded-full bg-sky text-navy-dark text-xs font-bold flex items-center justify-center shrink-0">${i+1}</span>
+      <input type="text" value="${escapeHtml(val)}" placeholder="Prioritas #${i+1}" class="flex-1 bg-cream-2 rounded-xl px-4 py-2 text-sm">`;
+    const input = wrap.querySelector('input');
+    input.addEventListener('input', debounce(async () => { data.top3[i] = input.value; await saveKey(key, data); }, 500));
+    top3Box.appendChild(wrap);
+  });
+
+  const focusEl = document.getElementById('weeklyFocus');
+  focusEl.value = data.focus || '';
+  focusEl.oninput = debounce(async () => { data.focus = focusEl.value; await saveKey(key, data); }, 500);
+
+  renderTodoList('weeklyTodoList', data.todos, async (todos) => { data.todos = todos; await saveKey(key, data); });
+
+  const notesEl = document.getElementById('weeklyNotes');
+  notesEl.value = data.notes || '';
+  notesEl.oninput = debounce(async () => { data.notes = notesEl.value; await saveKey(key, data); }, 500);
+
+  const addBtn = document.getElementById('weeklyTodoAdd');
+  const addInput = document.getElementById('weeklyTodoInput');
+  addBtn.onclick = async () => {
+    if (!addInput.value.trim()) return;
+    data.todos.push({ id: uid(), text: addInput.value.trim(), done: false });
+    addInput.value = '';
+    await saveKey(key, data);
+    renderTodoList('weeklyTodoList', data.todos, async (todos) => { data.todos = todos; await saveKey(key, data); });
+  };
+  addInput.onkeydown = (e) => { if (e.key === 'Enter') addBtn.click(); };
+}
+document.getElementById('weekPrev').onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); renderWeekly(); };
+document.getElementById('weekNext').onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); renderWeekly(); };
+document.getElementById('weekToday').onclick = () => { currentWeekStart = mondayOf(new Date()); renderWeekly(); };
+document.getElementById('weekPicker').onchange = (e) => { currentWeekStart = mondayOf(parseDateInput(e.target.value)); renderWeekly(); };
+
+/* ===================== BULANAN ===================== */
+let currentMonth = new Date().getMonth();
+let currentMonthYear = new Date().getFullYear();
+function monthKey(y, m) { return `monthly:${y}-${String(m+1).padStart(2,'0')}`; }
+let currentMonthData = null;
+
+async function renderMonthly() {
+  document.getElementById('monthLabel').textContent = `${BULAN[currentMonth]} ${currentMonthYear}`;
+  document.getElementById('monthPicker').value = `${currentMonthYear}-${String(currentMonth+1).padStart(2,'0')}`;
+  const key = monthKey(currentMonthYear, currentMonth);
+  const data = await loadKey(key, { incomes: [], categories: [], notes: '', bills: [], debts: [] });
+  if (!Array.isArray(data.bills)) data.bills = [];
+  if (!Array.isArray(data.incomes)) data.incomes = [];
+  if (!Array.isArray(data.debts)) data.debts = [];
+  if (Number(data.income) > 0) {
+    data.incomes.push({ id: uid(), name: 'Pemasukan (lama)', amount: Number(data.income) });
+    delete data.income;
+    await saveKey(key, data);
+  }
+  currentMonthData = data;
+
+  renderIncomeList(data, key);
+  renderCategoryList(data, key);
+  updateMonthSummary(data);
+  drawDonut(data);
+  renderBillList(data, key);
+  renderDebtList(data, key);
+  renderHistoryDatalist('history:incomes', 'incomeHistoryList');
+  renderHistoryDatalist('history:categories', 'categoryHistoryList');
+  renderHistoryDatalist('history:bills', 'billHistoryList');
+  renderHistoryDatalist('history:debts', 'debtHistoryList');
+
+  const notesEl = document.getElementById('monthNotes');
+  notesEl.value = data.notes || '';
+  notesEl.oninput = debounce(async () => { data.notes = notesEl.value; await saveKey(key, data); }, 500);
+
+  document.getElementById('incomeAdd').onclick = async () => {
+    const nameEl = document.getElementById('incomeName');
+    const amtEl = document.getElementById('incomeAmount');
+    if (!nameEl.value.trim()) return;
+    data.incomes.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0 });
+    await addToHistory('history:incomes', nameEl.value);
+    nameEl.value = ''; amtEl.value = '';
+    await saveKey(key, data);
+    renderIncomeList(data, key);
+    updateMonthSummary(data);
+    renderHistoryDatalist('history:incomes', 'incomeHistoryList');
+  };
+
+  document.getElementById('catAdd').onclick = async () => {
+    const nameEl = document.getElementById('catName');
+    const amtEl = document.getElementById('catAmount');
+    if (!nameEl.value.trim()) return;
+    data.categories.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0 });
+    await addToHistory('history:categories', nameEl.value);
+    nameEl.value = ''; amtEl.value = '';
+    await saveKey(key, data);
+    renderCategoryList(data, key);
+    updateMonthSummary(data);
+    drawDonut(data);
+    renderHistoryDatalist('history:categories', 'categoryHistoryList');
+  };
+
+  document.getElementById('billAdd').onclick = async () => {
+    const nameEl = document.getElementById('billName');
+    const amtEl = document.getElementById('billAmount');
+    const dueEl = document.getElementById('billDue');
+    if (!nameEl.value.trim()) return;
+    data.bills.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, due: dueEl.value || '', paid: false });
+    await addToHistory('history:bills', nameEl.value);
+    nameEl.value = ''; amtEl.value = ''; dueEl.value = '';
+    await saveKey(key, data);
+    renderBillList(data, key);
+    renderHistoryDatalist('history:bills', 'billHistoryList');
+  };
+
+  document.getElementById('debtAdd').onclick = async () => {
+    const typeEl = document.getElementById('debtType');
+    const nameEl = document.getElementById('debtName');
+    const amtEl = document.getElementById('debtAmount');
+    const dueEl = document.getElementById('debtDue');
+    if (!nameEl.value.trim()) return;
+    data.debts.push({ id: uid(), type: typeEl.value, name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, due: dueEl.value || '', paid: false });
+    await addToHistory('history:debts', nameEl.value);
+    nameEl.value = ''; amtEl.value = ''; dueEl.value = '';
+    await saveKey(key, data);
+    renderDebtList(data, key);
+    renderHistoryDatalist('history:debts', 'debtHistoryList');
+  };
+}
+
+function renderBillList(data, key) {
+  const box = document.getElementById('billList');
+  box.innerHTML = '';
+  const todayStr = fmtDate(new Date());
+
+  const paidTotal = data.bills.filter(b => b.paid).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const unpaidTotal = data.bills.filter(b => !b.paid).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  document.getElementById('billsPaidTotal').textContent = rupiah(paidTotal);
+  document.getElementById('billsUnpaidTotal').textContent = rupiah(unpaidTotal);
+
+  if (data.bills.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada tagihan.</p>';
+    return;
+  }
+
+  const sorted = [...data.bills].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  sorted.forEach(bill => {
+    const overdue = !bill.paid && bill.due && bill.due < todayStr;
+    const row = document.createElement('div');
+    row.className = `flex flex-wrap items-center gap-3 group rounded-xl px-3 py-2.5 ${overdue ? 'bg-rust/10' : 'bg-cream-2'}`;
+    row.innerHTML = `
+      <input type="checkbox" class="todo-check" ${bill.paid ? 'checked' : ''}>
+      <span class="text-sm font-medium ${bill.paid ? 'line-through text-muted' : 'text-charcoal'}">${escapeHtml(bill.name)}</span>
+      ${bill.due ? `<span class="text-xs ${overdue ? 'text-rust font-semibold' : 'text-muted'}">Jatuh tempo ${bill.due.split('-').reverse().join('/')}${overdue ? ' · Lewat' : ''}</span>` : ''}
+      <span class="ml-auto text-sm font-semibold text-navy-dark">${rupiah(bill.amount)}</span>
+      <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    row.querySelector('.todo-check').onchange = async (e) => {
+      bill.paid = e.target.checked;
+      await saveKey(key, data);
+      renderBillList(data, key);
+      updateMonthSummary(data);
+      drawDonut(data);
+    };
+    row.querySelector('button').onclick = async () => {
+      data.bills = data.bills.filter(b => b.id !== bill.id);
+      await saveKey(key, data);
+      renderBillList(data, key);
+      updateMonthSummary(data);
+      drawDonut(data);
+    };
+    box.appendChild(row);
+  });
+}
+
+function renderCategoryList(data, key) {
+  const box = document.getElementById('catList');
+  box.innerHTML = '';
+  if (data.categories.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada kategori.</p>';
+    return;
+  }
+  const palette = ['#274B6D', '#8FB4D1', '#DDEAF5', '#C9927B', '#69768A', '#4C7096'];
+  data.categories.forEach((cat, i) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 group';
+    row.innerHTML = `
+      <span class="w-3 h-3 rounded-full shrink-0" style="background:${palette[i % palette.length]}"></span>
+      <span class="flex-1 text-sm">${escapeHtml(cat.name)}</span>
+      <span class="text-sm font-medium text-navy-dark">${rupiah(cat.amount)}</span>
+      <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    row.querySelector('button').onclick = async () => {
+      data.categories.splice(i, 1);
+      await saveKey(key, data);
+      renderCategoryList(data, key);
+      updateMonthSummary(data);
+      drawDonut(data);
+    };
+    box.appendChild(row);
+  });
+}
+
+function billsPaidTotal(data) {
+  return (data.bills || []).filter(b => b.paid).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+}
+
+function debtsPaidTotals(data) {
+  const debts = data.debts || [];
+  // Hutang belum lunas = uang pinjaman sudah di tangan → menambah saldo (pemasukan)
+  // Hutang sudah lunas = uang dipakai membayar → mengurangi saldo (pengeluaran)
+  const hutangUnpaid = debts.filter(d => d.type === 'hutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const hutangPaid = debts.filter(d => d.type === 'hutang' && d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  // Piutang belum lunas = uang sudah dipinjamkan/keluar → mengurangi saldo (pengeluaran)
+  // Piutang sudah lunas = uang diterima kembali → menambah saldo (pemasukan)
+  const piutangUnpaid = debts.filter(d => d.type === 'piutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const piutangPaid = debts.filter(d => d.type === 'piutang' && d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+
+  const income = hutangUnpaid + piutangPaid;
+  const expense = hutangPaid + piutangUnpaid;
+  return { expense, income };
+}
+
+function totalIncome(data) {
+  if (Array.isArray(data.incomes) && data.incomes.length > 0) {
+    return data.incomes.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  }
+  return Number(data.income) || 0; // kompatibel dengan data lama (satu nilai pemasukan)
+}
+
+function renderIncomeList(data, key) {
+  const box = document.getElementById('incomeList');
+  box.innerHTML = '';
+  if (!data.incomes || data.incomes.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada pemasukan tercatat.</p>';
+    return;
+  }
+  data.incomes.forEach((inc, i) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 group';
+    row.innerHTML = `
+      <span class="w-2 h-2 rounded-full bg-navy shrink-0"></span>
+      <span class="flex-1 text-sm">${escapeHtml(inc.name)}</span>
+      <span class="text-sm font-medium text-navy-dark">${rupiah(inc.amount)}</span>
+      <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    row.querySelector('button').onclick = async () => {
+      data.incomes.splice(i, 1);
+      await saveKey(key, data);
+      renderIncomeList(data, key);
+      updateMonthSummary(data);
+    };
+    box.appendChild(row);
+  });
+}
+
+function renderDebtList(data, key) {
+  const box = document.getElementById('debtList');
+  box.innerHTML = '';
+  const todayStr = fmtDate(new Date());
+
+  const { expense: hutangUnpaid, income: piutangUnpaid } = (() => {
+    const debts = data.debts || [];
+    return {
+      expense: debts.filter(d => d.type === 'hutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+      income: debts.filter(d => d.type === 'piutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+    };
+  })();
+  document.getElementById('debtsHutangTotal').textContent = rupiah(hutangUnpaid);
+  document.getElementById('debtsPiutangTotal').textContent = rupiah(piutangUnpaid);
+
+  if (!data.debts || data.debts.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada hutang atau piutang tercatat.</p>';
+    return;
+  }
+
+  const sorted = [...data.debts].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  sorted.forEach(debt => {
+    const isHutang = debt.type === 'hutang';
+    const overdue = !debt.paid && debt.due && debt.due < todayStr;
+    const row = document.createElement('div');
+    row.className = `flex flex-wrap items-center gap-3 group rounded-xl px-3 py-2.5 ${overdue ? 'bg-rust/10' : 'bg-cream-2'}`;
+    row.innerHTML = `
+      <input type="checkbox" class="todo-check" ${debt.paid ? 'checked' : ''}>
+      <span class="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full ${isHutang ? 'bg-rust/15 text-rust' : 'bg-navy/10 text-navy'}">${isHutang ? 'Hutang' : 'Piutang'}</span>
+      <span class="text-sm font-medium ${debt.paid ? 'line-through text-muted' : 'text-charcoal'}">${escapeHtml(debt.name)}</span>
+      ${debt.due ? `<span class="text-xs ${overdue ? 'text-rust font-semibold' : 'text-muted'}">${isHutang ? 'Jatuh tempo' : 'Ditagih'} ${debt.due.split('-').reverse().join('/')}${overdue ? ' · Lewat' : ''}</span>` : ''}
+      <span class="ml-auto text-sm font-semibold text-navy-dark">${rupiah(debt.amount)}</span>
+      <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    row.querySelector('.todo-check').onchange = async (e) => {
+      debt.paid = e.target.checked;
+      await saveKey(key, data);
+      renderDebtList(data, key);
+      updateMonthSummary(data);
+      drawDonut(data);
+    };
+    row.querySelector('button').onclick = async () => {
+      data.debts = data.debts.filter(d => d.id !== debt.id);
+      await saveKey(key, data);
+      renderDebtList(data, key);
+      updateMonthSummary(data);
+      drawDonut(data);
+    };
+    box.appendChild(row);
+  });
+}
+
+function updateMonthSummary(data) {
+  const debtEffect = debtsPaidTotals(data);
+  const income = totalIncome(data) + debtEffect.income;
+  const catExpense = data.categories.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const billsExpense = billsPaidTotal(data);
+  const totalExpense = catExpense + billsExpense + debtEffect.expense;
+  document.getElementById('monthIncomeTotal').textContent = rupiah(income);
+  document.getElementById('monthExpenseTotal').textContent = rupiah(totalExpense);
+  document.getElementById('monthRemaining').textContent = rupiah(income - totalExpense);
+}
+
+function drawDonut(data) {
+  const categories = [...data.categories];
+  const billsExpense = billsPaidTotal(data);
+  if (billsExpense > 0) categories.push({ id: 'bills-agg', name: 'Tagihan Terbayar', amount: billsExpense });
+  const debts = data.debts || [];
+  const hutangPaid = debts.filter(d => d.type === 'hutang' && d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const piutangUnpaid = debts.filter(d => d.type === 'piutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  if (hutangPaid > 0) categories.push({ id: 'hutang-agg', name: 'Hutang Terbayar', amount: hutangPaid });
+  if (piutangUnpaid > 0) categories.push({ id: 'piutang-agg', name: 'Piutang Belum Diterima', amount: piutangUnpaid });
+
+  const canvas = document.getElementById('donutChart');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const total = categories.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const emptyMsg = document.getElementById('donutEmpty');
+  if (total <= 0) { emptyMsg.style.display = 'block'; return; }
+  emptyMsg.style.display = 'none';
+
+  const palette = ['#274B6D', '#8FB4D1', '#DDEAF5', '#C9927B', '#69768A', '#4C7096'];
+  const cx = 100, cy = 100, rOuter = 90, rInner = 55;
+  let start = -Math.PI / 2;
+  categories.forEach((cat, i) => {
+    const slice = (Number(cat.amount) || 0) / total * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, rOuter, start, start + slice);
+    ctx.closePath();
+    ctx.fillStyle = palette[i % palette.length];
+    ctx.fill();
+    start += slice;
+  });
+  ctx.beginPath();
+  ctx.arc(cx, cy, rInner, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+}
+
+document.getElementById('monthPrev').onclick = () => {
+  currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentMonthYear--; }
+  renderMonthly();
+};
+document.getElementById('monthNext').onclick = () => {
+  currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentMonthYear++; }
+  renderMonthly();
+};
+document.getElementById('monthPicker').onchange = (e) => {
+  const [y, m] = e.target.value.split('-').map(Number);
+  currentMonthYear = y; currentMonth = m - 1;
+  renderMonthly();
+};
+
+/* ---- Unduh Excel (rekap bulanan) ---- */
+function ensureXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  if (window._xlsxLoading) return window._xlsxLoading;
+  window._xlsxLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return window._xlsxLoading;
+}
+
+document.getElementById('downloadExcel').onclick = async () => {
+  const btn = document.getElementById('downloadExcel');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = 'Menyiapkan…';
+  btn.disabled = true;
+  try {
+    await ensureXLSX();
+  } catch (e) {
+    alert('Gagal memuat pustaka Excel. Cek koneksi internet lalu coba lagi.');
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+    return;
+  }
+  btn.innerHTML = originalText;
+  btn.disabled = false;
+
+  const data = currentMonthData || { incomes: [], categories: [], notes: '', bills: [], debts: [] };
+  const incomes = Array.isArray(data.incomes) ? data.incomes : [];
+  const bills = Array.isArray(data.bills) ? data.bills : [];
+  const debts = Array.isArray(data.debts) ? data.debts : [];
+  const billsPaid = bills.filter(b => b.paid).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const billsUnpaid = bills.filter(b => !b.paid).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  const debtEffect = debtsPaidTotals(data);
+  const hutangUnpaid = debts.filter(d => d.type === 'hutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const piutangUnpaid = debts.filter(d => d.type === 'piutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const incomeTotal = totalIncome(data) + debtEffect.income;
+  const totalExpense = data.categories.reduce((s, c) => s + (Number(c.amount) || 0), 0) + billsPaid + debtEffect.expense;
+  const sisa = incomeTotal - totalExpense;
+
+  const rows = [
+    ['Rekap Bulanan TataHari'],
+    [`Bulan: ${BULAN[currentMonth]} ${currentMonthYear}`],
+    [],
+    ['Sumber Pemasukan', 'Jumlah (Rp)'],
+    ...incomes.map(i => [i.name, Number(i.amount) || 0]),
+    [],
+    ['Total Pemasukan (termasuk piutang diterima)', incomeTotal],
+    [],
+    ['Kategori', 'Jumlah (Rp)'],
+    ...data.categories.map(c => [c.name, Number(c.amount) || 0]),
+    [],
+    ['Total Pengeluaran (termasuk tagihan & hutang terbayar)', totalExpense],
+    ['Sisa / Tabungan', sisa],
+    [],
+    ['Tagihan', 'Jumlah (Rp)', 'Jatuh Tempo', 'Status'],
+    ...bills.map(b => [b.name, Number(b.amount) || 0, b.due || '-', b.paid ? 'Sudah dibayar' : 'Belum dibayar']),
+    [],
+    ['Total Tagihan Sudah Dibayar', billsPaid],
+    ['Total Tagihan Belum Dibayar', billsUnpaid],
+    [],
+    ['Hutang / Piutang', 'Jumlah (Rp)', 'Jatuh Tempo', 'Status'],
+    ...debts.map(d => [`${d.type === 'hutang' ? 'Hutang' : 'Piutang'} - ${d.name}`, Number(d.amount) || 0, d.due || '-', d.paid ? 'Lunas' : 'Belum lunas']),
+    [],
+    ['Total Hutang Belum Lunas', hutangUnpaid],
+    ['Total Piutang Belum Diterima', piutangUnpaid],
+    [],
+    ['Catatan', data.notes || '-'],
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 26 }, { wch: 18 }, { wch: 14 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekap Bulanan');
+  XLSX.writeFile(wb, `Rekap-TataHari-${BULAN[currentMonth]}-${currentMonthYear}.xlsx`);
+};
+
+/* ===================== TAHUNAN ===================== */
+let currentYear = new Date().getFullYear();
+async function renderYearly() {
+  document.getElementById('yearLabel').textContent = String(currentYear);
+  document.getElementById('yearPicker').value = currentYear;
+  const yKey = 'yearly:' + currentYear;
+  const meta = await loadKey(yKey, { eval: '', target: '' });
+
+  const evalEl = document.getElementById('yearEval');
+  evalEl.value = meta.eval || '';
+  evalEl.oninput = debounce(async () => { meta.eval = evalEl.value; await saveKey(yKey, meta); }, 500);
+
+  const targetEl = document.getElementById('yearTarget');
+  targetEl.value = meta.target || '';
+  targetEl.oninput = debounce(async () => { meta.target = targetEl.value; await saveKey(yKey, meta); }, 500);
+
+  const monthsData = [];
+  let incomeSum = 0, expenseSum = 0;
+  for (let m = 0; m < 12; m++) {
+    const mk = monthKey(currentYear, m);
+    const md = await loadKey(mk, { incomes: [], categories: [], bills: [], debts: [] });
+    const debtEffect = debtsPaidTotals(md);
+    const inc = totalIncome(md) + debtEffect.income;
+    const exp = (md.categories || []).reduce((s, c) => s + (Number(c.amount) || 0), 0) + billsPaidTotal(md) + debtEffect.expense;
+    monthsData.push({ income: inc, expense: exp });
+    incomeSum += inc;
+    expenseSum += exp;
+  }
+  document.getElementById('yearIncomeTotal').textContent = rupiah(incomeSum);
+  document.getElementById('yearExpenseTotal').textContent = rupiah(expenseSum);
+  document.getElementById('yearSavingTotal').textContent = rupiah(incomeSum - expenseSum);
+
+  drawTrend(monthsData);
+}
+
+function drawTrend(monthsData) {
+  const canvas = document.getElementById('trendChart');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  const max = Math.max(1, ...monthsData.map(m => Math.max(m.income, m.expense)));
+  const padding = 30;
+  const chartH = h - padding * 2;
+  const groupW = (w - padding * 2) / 12;
+
+  ctx.strokeStyle = '#E4EEF5';
+  ctx.beginPath();
+  ctx.moveTo(padding, h - padding);
+  ctx.lineTo(w - padding, h - padding);
+  ctx.stroke();
+
+  monthsData.forEach((m, i) => {
+    const x = padding + i * groupW;
+    const incomeH = (m.income / max) * chartH;
+    const expenseH = (m.expense / max) * chartH;
+    const barW = groupW * 0.32;
+
+    ctx.fillStyle = '#8FB4D1';
+    ctx.fillRect(x + groupW*0.08, h - padding - incomeH, barW, incomeH);
+
+    ctx.fillStyle = '#274B6D';
+    ctx.fillRect(x + groupW*0.08 + barW + 3, h - padding - expenseH, barW, expenseH);
+
+    ctx.fillStyle = '#69768A';
+    ctx.font = '10px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(BULAN[i].slice(0,3), x + groupW/2, h - padding + 14);
+  });
+}
+
+document.getElementById('yearPrev').onclick = () => { currentYear--; renderYearly(); };
+document.getElementById('yearNext').onclick = () => { currentYear++; renderYearly(); };
+document.getElementById('yearPicker').onchange = (e) => {
+  const y = Number(e.target.value);
+  if (y >= 2000 && y <= 2100) { currentYear = y; renderYearly(); }
+};
+
+/* ===================== KALENDER ===================== */
+let currentCalMonth = new Date().getMonth();
+let currentCalYear = new Date().getFullYear();
+let selectedCalDate = fmtDate(new Date());
+let selectedCalColor = '#274B6D';
+
+function calKey(y, m) { return `calendar:${y}-${String(m+1).padStart(2,'0')}`; }
+
+async function renderCalendar() {
+  document.getElementById('calLabel').textContent = `${BULAN[currentCalMonth]} ${currentCalYear}`;
+  document.getElementById('calPicker').value = `${currentCalYear}-${String(currentCalMonth+1).padStart(2,'0')}`;
+
+  const key = calKey(currentCalYear, currentCalMonth);
+  const marks = await loadKey(key, []);
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  const firstOfMonth = new Date(currentCalYear, currentCalMonth, 1);
+  let offset = firstOfMonth.getDay() - 1; // Monday = 0
+  if (offset < 0) offset = 6;
+  const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+  const todayStr = fmtDate(new Date());
+
+  for (let i = 0; i < offset; i++) {
+    const blank = document.createElement('div');
+    grid.appendChild(blank);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${currentCalYear}-${String(currentCalMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayMarks = marks.filter(m => m.date === dateStr);
+    const cell = document.createElement('button');
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === selectedCalDate;
+    cell.className = `relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm gap-1 transition-colors
+      ${isSelected ? 'bg-navy text-cream' : isToday ? 'bg-sky text-navy-dark font-semibold' : 'bg-cream-2 hover:bg-sky/60 text-charcoal'}`;
+    cell.innerHTML = `<span>${day}</span>
+      <span class="flex gap-0.5">${dayMarks.slice(0,3).map(m => `<span class="w-1.5 h-1.5 rounded-full" style="background:${isSelected ? '#FAF8F3' : m.color}"></span>`).join('')}</span>`;
+    cell.onclick = () => { selectedCalDate = dateStr; renderCalendar(); };
+    grid.appendChild(cell);
+  }
+
+  // color swatch selection state
+  document.querySelectorAll('.cal-color-swatch').forEach(sw => {
+    sw.classList.toggle('ring-2', sw.dataset.color === selectedCalColor);
+    sw.classList.toggle('ring-navy-dark', sw.dataset.color === selectedCalColor);
+  });
+
+  // selected date detail
+  const [sy, sm, sd] = selectedCalDate.split('-').map(Number);
+  const selDateObj = new Date(sy, sm - 1, sd);
+  document.getElementById('calSelectedLabel').textContent =
+    `${HARI[selDateObj.getDay()]}, ${sd} ${BULAN[sm-1]} ${sy}`;
+
+  const marksForSelected = marks.filter(m => m.date === selectedCalDate);
+  const markListBox = document.getElementById('calMarkList');
+  markListBox.innerHTML = '';
+  if (marksForSelected.length === 0) {
+    markListBox.innerHTML = '<p class="text-sm text-muted italic">Belum ada penanda di tanggal ini.</p>';
+  } else {
+    marksForSelected.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-3 group';
+      row.innerHTML = `<span class="w-3 h-3 rounded-full shrink-0" style="background:${m.color}"></span>
+        <span class="flex-1 text-sm">${escapeHtml(m.label)}</span>
+        <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
+          <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>`;
+      row.querySelector('button').onclick = async () => {
+        const idx = marks.findIndex(x => x.id === m.id);
+        marks.splice(idx, 1);
+        await saveKey(key, marks);
+        renderCalendar();
+      };
+      markListBox.appendChild(row);
+    });
+  }
+
+  // full month list, sorted by date
+  const monthListBox = document.getElementById('calMonthList');
+  monthListBox.innerHTML = '';
+  const sorted = [...marks].sort((a, b) => a.date.localeCompare(b.date));
+  if (sorted.length === 0) {
+    monthListBox.innerHTML = '<p class="text-sm text-muted italic">Belum ada hari penting bulan ini.</p>';
+  } else {
+    sorted.forEach(m => {
+      const [my, mm, md] = m.date.split('-').map(Number);
+      const row = document.createElement('button');
+      row.className = 'w-full flex items-center gap-3 text-left group hover:bg-cream-2 rounded-lg px-2 py-1.5 -mx-2';
+      row.innerHTML = `<span class="w-3 h-3 rounded-full shrink-0" style="background:${m.color}"></span>
+        <span class="text-sm font-medium text-navy-dark w-10 shrink-0">${md}/${mm}</span>
+        <span class="flex-1 text-sm">${escapeHtml(m.label)}</span>`;
+      row.onclick = () => { selectedCalDate = m.date; renderCalendar(); };
+      monthListBox.appendChild(row);
+    });
+  }
+
+  document.querySelectorAll('.cal-color-swatch').forEach(sw => {
+    sw.onclick = () => { selectedCalColor = sw.dataset.color; renderCalendar(); };
+  });
+
+  document.getElementById('calAdd').onclick = async () => {
+    const input = document.getElementById('calLabelInput');
+    if (!input.value.trim()) return;
+    marks.push({ id: uid(), date: selectedCalDate, label: input.value.trim(), color: selectedCalColor });
+    input.value = '';
+    await saveKey(key, marks);
+    renderCalendar();
+  };
+}
+
+document.getElementById('calPrev').onclick = () => {
+  currentCalMonth--; if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
+  renderCalendar();
+};
+document.getElementById('calNext').onclick = () => {
+  currentCalMonth++; if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
+  renderCalendar();
+};
+document.getElementById('calPicker').onchange = (e) => {
+  const [y, m] = e.target.value.split('-').map(Number);
+  currentCalYear = y; currentCalMonth = m - 1;
+  renderCalendar();
+};
+
+/* ===================== INIT ===================== */
+/* ===================== RESET PER MENU ===================== */
+document.getElementById('resetHarian').onclick = async () => {
+  if (!confirm('Hapus semua data Rencana Harian untuk tanggal ini (Top 3, to-do, jadwal, catatan)? Tindakan ini tidak bisa dibatalkan.')) return;
+  await removeKey('daily:' + fmtDate(currentDay));
+  renderDaily();
+};
+document.getElementById('resetMingguan').onclick = async () => {
+  if (!confirm('Hapus semua data Prioritas Mingguan untuk minggu ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  await removeKey('weekly:' + isoWeekKey(currentWeekStart));
+  renderWeekly();
+};
+document.getElementById('resetBulanan').onclick = async () => {
+  if (!confirm('Hapus semua data Budget Bulanan untuk bulan ini (pemasukan, kategori, tagihan, catatan)? Tindakan ini tidak bisa dibatalkan.')) return;
+  await removeKey(monthKey(currentMonthYear, currentMonth));
+  renderMonthly();
+};
+document.getElementById('resetTahunan').onclick = async () => {
+  if (!confirm('Hapus evaluasi & target untuk tahun ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  await removeKey('yearly:' + currentYear);
+  renderYearly();
+};
+document.getElementById('resetKalender').onclick = async () => {
+  if (!confirm('Hapus semua penanda hari penting untuk bulan ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  await removeKey(calKey(currentCalYear, currentCalMonth));
+  renderCalendar();
+};
+
+(async function init() {
+  await initFirestore();
+  await renderBeranda();
+  await renderDaily();
+  await renderWeekly();
+  await renderMonthly();
+  await renderYearly();
+  await renderCalendar();
+})();
+</script>
+
+</body>
+</html>
