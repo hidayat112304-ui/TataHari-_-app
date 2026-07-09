@@ -10,7 +10,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAb1765vAGzh7iRUqRovwYGc0vuxSfxgfE",
@@ -18,10 +18,11 @@
     projectId: "tatahari-app",
     storageBucket: "tatahari-app.firebasestorage.app",
     messagingSenderId: "641414754504",
-    appId: "1:641414754504:web:6b62d540320a126925b5fd"
+    appId: "1:641414754504:web:6b62d540320a126925b5fd",
+    databaseURL: "https://tatahari-app-default-rtdb.asia-southeast1.firebasedatabase.app"
   };
   firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  const db = firebase.database();
 </script>
 <script>
   tailwind.config = {
@@ -676,10 +677,10 @@ async function ensureSyncCode() {
 
 async function initFirestore() {
   await ensureSyncCode();
-  docRef = db.collection('tatahari_sync').doc(SYNC_CODE);
+  docRef = db.ref('tatahari_sync/' + SYNC_CODE);
   try {
     const snap = await docRef.get();
-    dataCache = snap.exists ? (snap.data() || {}) : {};
+    dataCache = snap.exists() ? (snap.val() || {}) : {};
   } catch (e) {
     console.error('Gagal memuat data dari server', e);
     dataCache = {};
@@ -702,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* ===================== STORAGE HELPERS (Firestore, sync antar perangkat) ===================== */
+/* ===================== STORAGE HELPERS (Realtime Database, sync antar perangkat) ===================== */
 async function loadKey(key, fallback) {
   try {
     const raw = dataCache[key];
@@ -713,14 +714,14 @@ async function saveKey(key, value) {
   try {
     const raw = JSON.stringify(value);
     dataCache[key] = raw;
-    await docRef.set({ [key]: raw }, { merge: true });
+    await docRef.child(key.replace(/[.#$\[\]\/]/g, '_')).set(raw);
     flashSaved();
   } catch (e) { console.error('Gagal menyimpan', e); }
 }
 async function removeKey(key) {
   try {
     delete dataCache[key];
-    await docRef.update({ [key]: firebase.firestore.FieldValue.delete() });
+    await docRef.child(key.replace(/[.#$\[\]\/]/g, '_')).remove();
     flashSaved();
   } catch (e) { console.error('Gagal menghapus', e); }
 }
