@@ -146,6 +146,52 @@
     .card-3d:hover { transform: none; }
   }
   input[type="date"], input[type="month"] { color: #26333E; }
+
+  /* ===== Catatan: editor list & checklist ===== */
+  .cn-editor:empty:before {
+    content: attr(data-placeholder);
+    color: #9AA5B4;
+    pointer-events: none;
+  }
+  .cn-editor { white-space: pre-wrap; }
+  .cn-editor ol, .cn-editor ul { margin: 4px 0 4px 1.4em; padding: 0; }
+  .cn-editor li { margin: 2px 0; padding-left: 2px; }
+  .cn-editor ol.cn-list-arrow, .cn-editor ul.cn-list-arrow { list-style: none; margin-left: 1.1em; }
+  .cn-editor ul.cn-list-arrow > li { position: relative; }
+  .cn-editor ul.cn-list-arrow > li:before { content: '➤'; position: absolute; left: -1.3em; font-size: .7em; top: .15em; color: #C9927B; }
+
+  .cn-tool-btn { transition: background-color .15s ease, color .15s ease; }
+  .cn-tool-btn.active { background: #274B6D; color: #FAF8F3; }
+
+  .cn-check-line { display: flex; align-items: flex-start; gap: 9px; margin: 3px 0; }
+  .cn-check-box {
+    appearance: none; width: 17px; height: 17px; border: 1.5px solid #8FB4D1;
+    border-radius: 5px; cursor: pointer; position: relative; flex-shrink: 0; margin-top: 2px;
+    transition: background-color .2s ease, border-color .2s ease, transform .15s ease;
+  }
+  .cn-check-box:active { transform: scale(0.9); }
+  .cn-check-box:checked { background: #274B6D; border-color: #274B6D; }
+  .cn-check-box:checked::after {
+    content: ''; position: absolute; left: 5px; top: 1px; width: 5px; height: 9px;
+    border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+  .cn-check-text { flex: 1; outline: none; min-width: 1px; }
+  .cn-check-line.cn-checked .cn-check-text { text-decoration: line-through; color: #9AA5B4; }
+
+  .cn-date-btn {
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0; border: none;
+    background: transparent; color: #9AA5B4; cursor: pointer; padding: 2px 6px;
+    border-radius: 999px; font-size: 11px; font-weight: 500; margin-top: 1px;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .cn-date-btn:hover { background: #DDEAF5; color: #274B6D; }
+  .cn-date-btn.cn-date-set { background: #DDEAF5; color: #274B6D; }
+  .cn-date-btn.cn-date-overdue { background: rgba(201,146,123,0.18); color: #C9927B; }
+  .cn-date-btn .cn-date-label:empty { display: none; }
+  .cn-date-input {
+    font-size: 11px; border: 1.5px solid #8FB4D1; border-radius: 8px; padding: 2px 6px;
+    background: white; color: #26333E; margin-top: 1px; flex-shrink: 0;
+  }
 </style>
 </head>
 <body class="text-charcoal antialiased min-h-screen">
@@ -159,11 +205,11 @@
   </svg>
 </div>
 
-<div class="md:flex">
-
-  <!-- SIDEBAR (desktop) -->
-  <aside class="hidden md:flex md:flex-col md:w-64 md:h-screen md:sticky md:top-0 bg-white border-r border-sky/60 px-5 py-6 shrink-0">
-    <div class="flex items-center gap-2 px-2 mb-8">
+<!-- NAV DRAWER (tersembunyi, dibuka lewat ikon garis tiga) -->
+<div id="navDrawerBackdrop" class="fixed inset-0 bg-navy-dark/50 backdrop-blur-sm z-40 hidden"></div>
+<aside id="navDrawer" class="fixed top-0 left-0 h-screen w-72 max-w-[85vw] bg-white border-r border-sky/60 px-5 py-6 z-50 flex flex-col shadow-2xl transition-transform duration-300 -translate-x-full">
+  <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center gap-2 px-1">
       <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
         <circle cx="15" cy="15" r="7" fill="#274B6D"/>
         <g stroke="#274B6D" stroke-width="1.8" stroke-linecap="round">
@@ -179,105 +225,75 @@
       </svg>
       <span class="font-serif text-lg font-semibold text-navy-dark">TataHari</span>
     </div>
-
-    <nav class="flex flex-col gap-1">
-      <button data-tab="beranda" class="tab-btn active flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M1.5 6.5L7 2L12.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.5V12H11V5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Beranda
-      </button>
-      <button data-tab="harian" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12" stroke="currentColor" stroke-width="1.3"/></svg>
-        Rencana Harian
-      </button>
-      <button data-tab="mingguan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M2 10L5 6L7.5 8L12 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Prioritas Mingguan
-      </button>
-      <button data-tab="bulanan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 3V7L9.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        Budget Bulanan
-      </button>
-      <button data-tab="tahunan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M1 11V1M1 11H13M4 9L6.5 6L8.5 8L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Keuangan Tahunan
-      </button>
-      <button data-tab="kalender" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12M5 1.5V3.5M9 1.5V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        Kalender
-      </button>
-    </nav>
-
-    <div class="flex-1"></div>
-
-    <button id="syncCodeBadge" title="Klik untuk ganti kode sinkron" class="flex items-center justify-between gap-2 text-xs text-muted bg-cream-2 hover:bg-sky/60 rounded-xl px-3 py-2 mb-2 transition text-left">
-      <span class="truncate">Kode: <span id="syncCodeLabel" class="font-semibold text-navy-dark">-</span></span>
-      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <button id="navDrawerClose" class="p-1.5 rounded-lg hover:bg-cream-2 text-muted" aria-label="Tutup menu">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     </button>
+  </div>
 
-    <div id="savePillSidebar" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium px-2">
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Tersimpan
-    </div>
-  </aside>
+  <nav class="flex flex-col gap-1">
+    <button data-tab="beranda" class="tab-btn active flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M1.5 6.5L7 2L12.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.5V12H11V5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Beranda
+    </button>
+    <button data-tab="harian" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12" stroke="currentColor" stroke-width="1.3"/></svg>
+      Rencana Harian
+    </button>
+    <button data-tab="mingguan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M2 10L5 6L7.5 8L12 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Prioritas Mingguan
+    </button>
+    <button data-tab="bulanan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 3V7L9.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Budget Bulanan
+    </button>
+    <button data-tab="tahunan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M1 11V1M1 11H13M4 9L6.5 6L8.5 8L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Keuangan Tahunan
+    </button>
+    <button data-tab="kalender" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12M5 1.5V3.5M9 1.5V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Kalender
+    </button>
+    <button data-tab="catatan" class="tab-btn flex items-center gap-3 text-sm font-medium px-3.5 py-2.5 rounded-xl bg-cream-2 text-charcoal/70 text-left">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M4 1.5H8.5L11 4V11.5C11 12 10.6 12.5 10 12.5H4C3.4 12.5 3 12 3 11.5V2.5C3 2 3.4 1.5 4 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.5 1.5V4H11" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 7H9M5 9.5H9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Catatan
+    </button>
+  </nav>
 
-  <div class="flex-1 min-w-0">
+  <div class="flex-1"></div>
 
-    <!-- HEADER (mobile) -->
-    <header class="md:hidden border-b border-sky bg-cream sticky top-0 z-20">
-      <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
-            <circle cx="15" cy="15" r="7" fill="#274B6D"/>
-            <g stroke="#274B6D" stroke-width="1.8" stroke-linecap="round">
-              <line x1="15" y1="2" x2="15" y2="5.5"/>
-              <line x1="15" y1="24.5" x2="15" y2="28"/>
-              <line x1="2" y1="15" x2="5.5" y2="15"/>
-              <line x1="24.5" y1="15" x2="28" y2="15"/>
-              <line x1="5.6" y1="5.6" x2="8" y2="8"/>
-              <line x1="22" y1="22" x2="24.4" y2="24.4"/>
-              <line x1="5.6" y1="24.4" x2="8" y2="22"/>
-              <line x1="22" y1="8" x2="24.4" y2="5.6"/>
-            </g>
-          </svg>
-          <span class="font-serif text-lg font-semibold text-navy-dark">TataHari</span>
-        </div>
-        <div id="savePillMobile" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Tersimpan
-        </div>
+  <button id="syncCodeBadge" title="Klik untuk ganti kode sinkron" class="flex items-center justify-between gap-2 text-xs text-muted bg-cream-2 hover:bg-sky/60 rounded-xl px-3 py-2 mb-2 transition text-left">
+    <span class="truncate">Kode: <span id="syncCodeLabel" class="font-semibold text-navy-dark">-</span></span>
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="shrink-0"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <div id="savePillSidebar" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium px-2">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Tersimpan
+  </div>
+</aside>
+
+<div class="w-full min-w-0">
+
+  <!-- HEADER (semua ukuran layar) -->
+  <header class="border-b border-sky/60 bg-cream sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="navDrawerOpen" class="p-2 -ml-2 rounded-lg hover:bg-cream-2 text-navy-dark" aria-label="Buka menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5.5H17M3 10H17M3 14.5H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <h1 id="pageTitle" class="font-serif text-lg sm:text-xl text-navy-dark">Beranda</h1>
       </div>
-      <nav class="max-w-5xl mx-auto px-5 pb-3 flex gap-2 overflow-x-auto">
-        <button data-tab="beranda" class="tab-btn active whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 6.5L7 2L12.5 6.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.5V12H11V5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Beranda</button>
-        <button data-tab="harian" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12" stroke="currentColor" stroke-width="1.3"/></svg>
-          Rencana Harian</button>
-        <button data-tab="mingguan" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 10L5 6L7.5 8L12 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Prioritas Mingguan</button>
-        <button data-tab="bulanan" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M7 3V7L9.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Budget Bulanan</button>
-        <button data-tab="tahunan" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 11V1M1 11H13M4 9L6.5 6L8.5 8L12 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Keuangan Tahunan</button>
-        <button data-tab="kalender" class="tab-btn whitespace-nowrap flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-cream-2 text-charcoal/70">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 6H12M5 1.5V3.5M9 1.5V3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Kalender</button>
-      </nav>
-    </header>
-
-    <!-- HEADER (desktop, dashboard style) -->
-    <header class="hidden md:flex items-center justify-between px-8 py-5 border-b border-sky/60 bg-cream sticky top-0 z-10">
-      <h1 id="pageTitle" class="font-serif text-xl text-navy-dark">Beranda</h1>
       <div id="savePillDesktop" class="save-pill flex items-center gap-1.5 text-xs text-sky-mid font-medium">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Tersimpan
       </div>
-    </header>
+    </div>
+  </header>
 
 <main class="max-w-5xl mx-auto px-5 py-8">
+
 
   <!-- ============ BERANDA ============ -->
   <section id="panel-beranda" class="panel active space-y-6">
@@ -356,24 +372,16 @@
     </div>
 
     <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
-      <h2 class="font-serif text-lg text-navy-dark mb-4">To-do List</h2>
-      <div class="flex gap-2 mb-4">
-        <input id="dailyTodoInput" type="text" placeholder="Tambah tugas baru…" class="flex-1 bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
-        <button id="dailyTodoAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
-      </div>
-      <div id="dailyTodoList" class="space-y-2"></div>
-    </div>
-
-    <div class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-serif text-lg text-navy-dark">Jadwal Kegiatan</h2>
+        <h2 class="font-serif text-lg text-navy-dark">To-do & Jadwal Kegiatan</h2>
         <span class="text-xs text-muted">Diurutkan otomatis per jam</span>
       </div>
       <div class="flex flex-wrap gap-2 mb-4">
-        <input id="schedTimeInput" type="time" value="08:00" class="bg-cream-2 rounded-xl px-3 py-2.5 text-sm w-32">
-        <input id="schedTextInput" type="text" placeholder="Nama kegiatan…" class="flex-1 min-w-[160px] bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
+        <input id="schedTimeInput" type="time" class="bg-cream-2 rounded-xl px-3 py-2.5 text-sm w-32" title="Jam (opsional)">
+        <input id="schedTextInput" type="text" placeholder="Tulis tugas atau kegiatan…" class="flex-1 min-w-[160px] bg-cream-2 rounded-xl px-4 py-2.5 text-sm">
         <button id="schedAdd" class="bg-navy text-cream text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-dark btn-3d">Tambah</button>
       </div>
+      <p class="text-xs text-muted mb-3">Isi jam kalau kegiatannya terjadwal. Kosongkan jam kalau cuma tugas biasa (to-do) tanpa waktu tertentu.</p>
       <div id="dailySchedule" class="space-y-2"></div>
     </div>
 
@@ -624,9 +632,70 @@
     </div>
   </section>
 
+  <!-- ============ CATATAN ============ -->
+  <section id="panel-catatan" class="panel space-y-6">
+
+    <!-- List folder/file -->
+    <div id="catatanListView" class="bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div id="catatanBreadcrumb" class="flex flex-wrap items-center gap-1 text-sm min-w-0"></div>
+        <div class="flex gap-2 shrink-0">
+          <button id="catatanNewFolder" class="flex items-center gap-1.5 text-xs font-semibold text-navy-dark bg-cream-2 hover:bg-sky/60 px-3 py-2 rounded-lg transition">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 3.5C1.5 2.9 2 2.5 2.5 2.5H5.5L6.8 4H11.5C12 4 12.5 4.4 12.5 5V10.5C12.5 11 12 11.5 11.5 11.5H2.5C2 11.5 1.5 11 1.5 10.5V3.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 6.3V9.3M5.5 7.8H8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Folder Baru
+          </button>
+          <button id="catatanNewFile" class="flex items-center gap-1.5 text-xs font-semibold text-cream bg-navy hover:bg-navy-dark px-3 py-2 rounded-lg transition btn-3d">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Catatan Baru
+          </button>
+        </div>
+      </div>
+      <div id="catatanList" class="space-y-1"></div>
+    </div>
+
+    <!-- Editor catatan -->
+    <div id="catatanEditor" class="hidden bg-white rounded-3xl border border-sky/60 card-3d p-6">
+      <div class="flex items-center justify-between mb-4">
+        <button id="catatanEditorBack" class="flex items-center gap-1.5 text-xs font-semibold text-navy hover:underline">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M9 3L4 7L9 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Kembali
+        </button>
+        <div class="flex items-center gap-3">
+          <span id="catatanEditorSaved" class="save-pill show flex items-center gap-1.5 text-xs text-sky-mid font-medium">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3" stroke="#8FB4D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Tersimpan
+          </span>
+          <button id="catatanEditorDelete" title="Hapus catatan" class="icon-btn p-1.5 hover:text-rust">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <input id="catatanEditorTitle" type="text" placeholder="Judul catatan…" class="w-full font-serif text-xl text-navy-dark mb-4 bg-transparent focus:outline-none border-b border-sky/60 pb-3">
+
+      <!-- Toolbar list & checklist -->
+      <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+        <button type="button" data-list="decimal" title="Daftar bernomor (1,2,3)" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal text-xs font-semibold">1.</button>
+        <button type="button" data-list="lower-alpha" title="Daftar huruf (a,b,c)" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal text-xs font-semibold">a.</button>
+        <button type="button" data-list="lower-roman" title="Daftar angka romawi (i,ii,iii)" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal text-xs font-semibold">i.</button>
+        <div class="w-px h-5 bg-sky/60 mx-0.5"></div>
+        <button type="button" data-list="disc" title="Bullet titik" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal text-sm">•</button>
+        <button type="button" data-list="square" title="Bullet kotak" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal text-sm">▪</button>
+        <button type="button" data-list="arrow" title="Bullet panah" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal text-sm">➤</button>
+        <div class="w-px h-5 bg-sky/60 mx-0.5"></div>
+        <button type="button" id="catatanChecklistBtn" title="Checklist (bisa dicentang)" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-sky/60 text-charcoal">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 7.5L6.3 9.3L10.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" data-list="none" title="Hapus format daftar" class="cn-tool-btn flex items-center justify-center w-8 h-8 rounded-lg bg-cream-2 hover:bg-rust/30 text-muted ml-auto">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3L11 11M11 3L3 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div id="catatanEditorContent" contenteditable="true" data-placeholder="Tulis catatanmu di sini… (misal: daftar tugas kuliah, jadwal kuliah, atau apa saja)" class="cn-editor w-full bg-cream-2 rounded-xl px-4 py-3 text-sm leading-relaxed min-h-[20rem] focus:outline-none"></div>
+    </div>
+  </section>
+
 </main>
 
-  </div>
 </div>
 
 <!-- ===================== SYNC CODE GATE ===================== -->
@@ -756,10 +825,398 @@ function debounce(fn, delay) {
 }
 function uid() { return Math.random().toString(36).slice(2, 9); }
 function rupiah(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return `${tgl}, ${jam}`;
+}
 function escapeHtml(str) {
   const d = document.createElement('div');
   d.textContent = str || '';
   return d.innerHTML;
+}
+
+/* ===================== CATATAN: RICH LIST & CHECKLIST HELPERS ===================== */
+// Konversi teks polos lama (dari textarea) menjadi HTML aman untuk contenteditable
+function legacyPlainTextToHtml(text) {
+  if (!text) return '';
+  return String(text).split('\n').map(line => `<div>${escapeHtml(line) || '<br>'}</div>`).join('');
+}
+
+function cnGetContentEl() { return document.getElementById('catatanEditorContent'); }
+
+// Cari elemen block (li, div, p) tempat cursor berada di dalam contenteditable
+function cnCurrentBlock(root) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  if (node.nodeType === 3) node = node.parentNode;
+  while (node && node !== root) {
+    if (node.parentNode === root || ['LI','DIV','P'].includes(node.tagName)) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+function cnApplyListFormat(type) {
+  const root = cnGetContentEl();
+  root.focus();
+
+  if (type === 'none') {
+    // Hapus format list: keluarkan dari OL/UL jika ada
+    document.execCommand('formatBlock', false, 'div');
+    const sel = window.getSelection();
+    if (sel.rangeCount) {
+      let node = sel.getRangeAt(0).startContainer;
+      if (node.nodeType === 3) node = node.parentNode;
+      const li = node.closest ? node.closest('li') : null;
+      if (li) {
+        const list = li.closest('ol,ul');
+        if (list && (list.tagName === 'OL')) document.execCommand('insertOrderedList');
+        else if (list) document.execCommand('insertUnorderedList');
+      }
+    }
+    return;
+  }
+
+  if (type === 'arrow') {
+    document.execCommand('insertUnorderedList');
+    cnStyleActiveList('disc', 'cn-list-arrow');
+    return;
+  }
+
+  const isOrdered = ['decimal','lower-alpha','upper-alpha','lower-roman'].includes(type);
+  document.execCommand(isOrdered ? 'insertOrderedList' : 'insertUnorderedList');
+  cnStyleActiveList(type, null);
+}
+
+function cnStyleActiveList(styleType, extraClass) {
+  const root = cnGetContentEl();
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  let node = sel.getRangeAt(0).startContainer;
+  if (node.nodeType === 3) node = node.parentNode;
+  let list = node.closest ? node.closest('ol,ul') : null;
+  if (!list) return;
+  list.style.listStyleType = styleType;
+  list.classList.remove('cn-list-arrow');
+  if (extraClass) list.classList.add(extraClass);
+}
+
+// Buat satu baris checklist
+function cnMakeCheckLine(text, dateIso) {
+  const line = document.createElement('div');
+  line.className = 'cn-check-line';
+  line.setAttribute('contenteditable', 'false');
+  line.dataset.date = dateIso || '';
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.className = 'cn-check-box';
+  const span = document.createElement('span');
+  span.className = 'cn-check-text';
+  span.setAttribute('contenteditable', 'true');
+  span.textContent = text || '';
+  const dateBtn = document.createElement('button');
+  dateBtn.type = 'button';
+  dateBtn.className = 'cn-date-btn';
+  dateBtn.title = 'Atur tanggal & waktu tugas ini';
+  dateBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 5.5H12" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 2V4M9.5 2V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="cn-date-label"></span>`;
+  line.appendChild(box);
+  line.appendChild(span);
+  line.appendChild(dateBtn);
+  cnUpdateLineDateBadge(line);
+  return line;
+}
+
+// Perbarui tampilan label tanggal pada satu baris checklist
+function cnUpdateLineDateBadge(line) {
+  const label = line.querySelector('.cn-date-label');
+  const btn = line.querySelector('.cn-date-btn');
+  if (!label || !btn) return;
+  const iso = line.dataset.date;
+  btn.classList.remove('cn-date-set', 'cn-date-overdue');
+  if (iso) {
+    label.textContent = fmtDateTime(iso);
+    const overdue = line.dataset.notified !== '1' && new Date(iso).getTime() <= Date.now() && !line.classList.contains('cn-checked');
+    btn.classList.add(overdue ? 'cn-date-overdue' : 'cn-date-set');
+  } else {
+    label.textContent = '';
+  }
+}
+
+// Buka editor tanggal inline untuk satu baris checklist
+function cnOpenLineDateEditor(line) {
+  if (line.querySelector('.cn-date-input')) return; // sudah terbuka
+  cnRequestNotifPermission();
+  const btn = line.querySelector('.cn-date-btn');
+  const input = document.createElement('input');
+  input.type = 'datetime-local';
+  input.className = 'cn-date-input';
+  input.value = isoToLocalInputValue(line.dataset.date);
+  btn.style.display = 'none';
+  line.appendChild(input);
+  input.focus();
+
+  const commit = () => {
+    if (!input.isConnected || input.__cnCommitted) return;
+    input.__cnCommitted = true;
+    const newIso = input.value ? localInputValueToIso(input.value) : '';
+    if (newIso !== line.dataset.date) delete line.dataset.notified;
+    line.dataset.date = newIso;
+    input.remove();
+    btn.style.display = '';
+    cnUpdateLineDateBadge(line);
+    const root = cnGetContentEl();
+    if (root.__cnDoSave) root.__cnDoSave();
+  };
+  input.addEventListener('change', commit);
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); input.remove(); btn.style.display = ''; }
+  });
+}
+
+function cnToggleChecklist() {
+  const root = cnGetContentEl();
+  root.focus();
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  let block = cnCurrentBlock(root);
+
+  // Jika baris saat ini sudah checklist, batalkan (kembalikan ke teks biasa)
+  if (block && block.classList && block.classList.contains('cn-check-line')) {
+    const span = block.querySelector('.cn-check-text');
+    const div = document.createElement('div');
+    div.textContent = span ? span.textContent : '';
+    block.replaceWith(div);
+    return;
+  }
+
+  const text = block ? (block.textContent || '') : '';
+  const checkLine = cnMakeCheckLine(text);
+
+  if (block && block.parentNode) {
+    block.replaceWith(checkLine);
+  } else {
+    root.appendChild(checkLine);
+  }
+  // Taruh cursor di akhir teks span
+  const span = checkLine.querySelector('.cn-check-text');
+  const r = document.createRange();
+  r.selectNodeContents(span);
+  r.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(r);
+}
+
+function cnHandleEditorKeydown(e) {
+  const root = cnGetContentEl();
+  if (e.target && e.target.classList && e.target.classList.contains('cn-date-input')) return; // biarkan input tanggal menangani sendiri
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  let node = sel.getRangeAt(0).startContainer;
+  const span = node.nodeType === 3 ? node.parentNode : node;
+  const checkLine = span.closest ? span.closest('.cn-check-line') : null;
+  if (!checkLine) return;
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const textEl = checkLine.querySelector('.cn-check-text');
+    if (!textEl.textContent.trim()) {
+      // baris kosong: keluar dari mode checklist, buat baris teks biasa
+      const div = document.createElement('div');
+      div.innerHTML = '<br>';
+      checkLine.replaceWith(div);
+      const r = document.createRange();
+      r.selectNodeContents(div);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+      return;
+    }
+    const newLine = cnMakeCheckLine('');
+    checkLine.after(newLine);
+    const r = document.createRange();
+    r.selectNodeContents(newLine.querySelector('.cn-check-text'));
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+  } else if (e.key === 'Backspace') {
+    const textEl = checkLine.querySelector('.cn-check-text');
+    const range = sel.getRangeAt(0);
+    if (!textEl.textContent) {
+      e.preventDefault();
+      const div = document.createElement('div');
+      div.innerHTML = '<br>';
+      checkLine.replaceWith(div);
+      const r = document.createRange();
+      r.selectNodeContents(div);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+  }
+}
+
+function cnInitEditorToolbar(doSave) {
+  const root = cnGetContentEl();
+  root.__cnDoSave = doSave;
+  document.querySelectorAll('.cn-tool-btn[data-list]').forEach(btn => {
+    btn.onclick = () => cnApplyListFormat(btn.dataset.list);
+  });
+  document.getElementById('catatanChecklistBtn').onclick = () => cnToggleChecklist();
+
+  // Pastikan semua baris checklist yang sudah ada (dimuat dari HTML tersimpan) punya tombol & badge tanggal
+  root.querySelectorAll('.cn-check-line').forEach(line => {
+    if (!line.querySelector('.cn-date-btn')) {
+      const dateBtn = document.createElement('button');
+      dateBtn.type = 'button';
+      dateBtn.className = 'cn-date-btn';
+      dateBtn.title = 'Atur tanggal & waktu tugas ini';
+      dateBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 5.5H12" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 2V4M9.5 2V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span class="cn-date-label"></span>`;
+      line.appendChild(dateBtn);
+      if (!line.dataset.date) line.dataset.date = '';
+    }
+    cnUpdateLineDateBadge(line);
+  });
+
+  if (!root.__cnBound) {
+    root.__cnBound = true;
+    root.addEventListener('keydown', cnHandleEditorKeydown);
+    root.addEventListener('click', (e) => {
+      if (e.target.classList && e.target.classList.contains('cn-check-box')) {
+        const line = e.target.closest('.cn-check-line');
+        if (line) {
+          line.classList.toggle('cn-checked', e.target.checked);
+          cnUpdateLineDateBadge(line);
+        }
+        return;
+      }
+      const dateBtn = e.target.closest ? e.target.closest('.cn-date-btn') : null;
+      if (dateBtn) {
+        const line = dateBtn.closest('.cn-check-line');
+        if (line) cnOpenLineDateEditor(line);
+      }
+    });
+  }
+}
+
+/* ===================== CATATAN: PENGINGAT PER-TUGAS (CHECKLIST) ===================== */
+// Konversi ISO string <-> nilai input datetime-local (waktu lokal perangkat)
+function isoToLocalInputValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+function localInputValueToIso(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function cnRequestNotifPermission() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+function cnNotifyReminder(noteName, taskText) {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      new Notification('🔔 Pengingat Tugas', {
+        body: `${taskText || 'Tugas'}\n(${noteName})`,
+        tag: 'catatan-task-' + Math.random().toString(36).slice(2),
+      });
+    } catch (e) { /* abaikan jika gagal */ }
+  } else {
+    alert(`🔔 Pengingat: ${taskText || 'Tugas'}\nCatatan: ${noteName}`);
+  }
+}
+
+// Cek semua baris checklist di semua catatan; kirim notifikasi untuk yang sudah jatuh tempo
+async function cnCheckReminders() {
+  if (!Array.isArray(catatanItems)) return;
+  const now = Date.now();
+  let changed = false;
+  const editorOpen = document.getElementById('catatanEditor') && !document.getElementById('catatanEditor').classList.contains('hidden');
+
+  for (const item of catatanItems) {
+    if (item.type !== 'file') continue;
+    const isOpenNote = editorOpen && catatanOpenFileId === item.id;
+
+    if (isOpenNote) {
+      const root = cnGetContentEl();
+      if (!root) continue;
+      let localChanged = false;
+      root.querySelectorAll('.cn-check-line[data-date]').forEach(line => {
+        const iso = line.dataset.date;
+        if (!iso || line.dataset.notified === '1') return;
+        if (new Date(iso).getTime() <= now) {
+          const text = line.querySelector('.cn-check-text')?.textContent || '';
+          cnNotifyReminder(item.name, text);
+          line.dataset.notified = '1';
+          cnUpdateLineDateBadge(line);
+          localChanged = true;
+        }
+      });
+      if (localChanged) {
+        item.content = root.innerHTML;
+        item.updatedAt = new Date().toISOString();
+        changed = true;
+      }
+    } else {
+      if (!item.content || item.content.indexOf('cn-check-line') === -1) continue;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = item.content;
+      let localChanged = false;
+      wrap.querySelectorAll('.cn-check-line[data-date]').forEach(line => {
+        const iso = line.dataset.date;
+        if (!iso || line.dataset.notified === '1') return;
+        if (new Date(iso).getTime() <= now) {
+          const text = line.querySelector('.cn-check-text')?.textContent || '';
+          cnNotifyReminder(item.name, text);
+          line.dataset.notified = '1';
+          localChanged = true;
+        }
+      });
+      if (localChanged) {
+        item.content = wrap.innerHTML;
+        item.updatedAt = new Date().toISOString();
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    await saveCatatanItems();
+    if (document.getElementById('catatanListView') && !document.getElementById('catatanListView').classList.contains('hidden')) {
+      renderCatatanList();
+    }
+  }
+}
+
+// Cari tugas dengan tanggal terdekat di sebuah catatan (untuk ditampilkan di daftar)
+function cnGetItemReminderSummary(item) {
+  if (!item.content || item.content.indexOf('cn-check-line') === -1) return null;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = item.content;
+  const lines = [...wrap.querySelectorAll('.cn-check-line[data-date]')].filter(l => l.dataset.date);
+  if (!lines.length) return null;
+  lines.sort((a, b) => new Date(a.dataset.date) - new Date(b.dataset.date));
+  const nearest = lines[0];
+  return {
+    date: nearest.dataset.date,
+    overdue: nearest.dataset.notified !== '1' && new Date(nearest.dataset.date).getTime() <= Date.now(),
+  };
 }
 
 /* ===================== DATE HELPERS ===================== */
@@ -791,6 +1248,7 @@ const TAB_LABELS = {
   bulanan: 'Budget Bulanan',
   tahunan: 'Keuangan Tahunan',
   kalender: 'Kalender',
+  catatan: 'Catatan',
 };
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -801,6 +1259,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = TAB_LABELS[tab] || '';
     if (tab === 'beranda') renderBeranda();
+    if (tab === 'catatan') renderCatatan();
+    closeNavDrawer();
   });
 });
 document.querySelectorAll('[data-goto]').forEach(el => {
@@ -809,6 +1269,19 @@ document.querySelectorAll('[data-goto]').forEach(el => {
     if (target) target.click();
   });
 });
+
+/* ===================== NAV DRAWER (buka/tutup lewat ikon garis tiga) ===================== */
+function openNavDrawer() {
+  document.getElementById('navDrawer').classList.remove('-translate-x-full');
+  document.getElementById('navDrawerBackdrop').classList.remove('hidden');
+}
+function closeNavDrawer() {
+  document.getElementById('navDrawer').classList.add('-translate-x-full');
+  document.getElementById('navDrawerBackdrop').classList.add('hidden');
+}
+document.getElementById('navDrawerOpen')?.addEventListener('click', openNavDrawer);
+document.getElementById('navDrawerClose')?.addEventListener('click', closeNavDrawer);
+document.getElementById('navDrawerBackdrop')?.addEventListener('click', closeNavDrawer);
 
 /* ===================== BERANDA ===================== */
 const BERANDA_TAGLINES = [
@@ -840,8 +1313,8 @@ async function renderBeranda() {
 
   // Status tugas hari ini (tanggal asli hari ini)
   const todayKey = 'daily:' + fmtDate(now);
-  const todayData = await loadKey(todayKey, { todos: [] });
-  const todos = Array.isArray(todayData.todos) ? todayData.todos : [];
+  const todayRaw = await loadKey(todayKey, { activities: [] });
+  const todos = Array.isArray(todayRaw.activities) ? todayRaw.activities : (Array.isArray(todayRaw.todos) ? todayRaw.todos : []);
   const doneCount = todos.filter(t => t.done).length;
   const pending = todos.length - doneCount;
   const taskEl = document.getElementById('berandaTaskStatus');
@@ -883,8 +1356,8 @@ async function renderDaily() {
     `${HARI[currentDay.getDay()]}, ${currentDay.getDate()} ${BULAN[currentDay.getMonth()]} ${currentDay.getFullYear()}`;
   document.getElementById('dayPicker').value = fmtDate(currentDay);
 
-  const raw = await loadKey(key, { top3: ['', '', ''], todos: [], schedule: [], notes: '' });
-  const data = { ...raw, schedule: Array.isArray(raw.schedule) ? raw.schedule : [] };
+  const raw = await loadKey(key, { top3: ['', '', ''], activities: [], notes: '' });
+  const data = migrateActivities(raw);
 
   // Top 3
   const top3Box = document.getElementById('dailyTop3');
@@ -902,53 +1375,57 @@ async function renderDaily() {
     top3Box.appendChild(wrap);
   });
 
-  // Todos
-  renderTodoList('dailyTodoList', data.todos, async (todos) => { data.todos = todos; await saveKey(key, data); });
-
-  // Schedule (dynamic, editable)
-  renderSchedule(data, key);
+  // To-do & Jadwal Kegiatan (gabungan)
+  renderActivities(data, key);
 
   // Notes
   const notesEl = document.getElementById('dailyNotes');
   notesEl.value = data.notes || '';
   notesEl.oninput = debounce(async () => { data.notes = notesEl.value; await saveKey(key, data); }, 500);
 
-  // Todo add
-  const addBtn = document.getElementById('dailyTodoAdd');
-  const addInput = document.getElementById('dailyTodoInput');
-  addBtn.onclick = async () => {
-    if (!addInput.value.trim()) return;
-    data.todos.push({ id: uid(), text: addInput.value.trim(), done: false });
-    addInput.value = '';
-    await saveKey(key, data);
-    renderTodoList('dailyTodoList', data.todos, async (todos) => { data.todos = todos; await saveKey(key, data); });
-  };
-  addInput.onkeydown = (e) => { if (e.key === 'Enter') addBtn.click(); };
-
-  // Schedule add
+  // Tambah kegiatan/tugas
   document.getElementById('schedAdd').onclick = async () => {
     const timeEl = document.getElementById('schedTimeInput');
     const textEl = document.getElementById('schedTextInput');
     if (!textEl.value.trim()) return;
-    data.schedule.push({ id: uid(), time: timeEl.value || '00:00', text: textEl.value.trim() });
-    textEl.value = '';
+    data.activities.push({ id: uid(), time: timeEl.value || '', text: textEl.value.trim(), done: false });
+    timeEl.value = ''; textEl.value = '';
     await saveKey(key, data);
-    renderSchedule(data, key);
+    renderActivities(data, key);
+  };
+  document.getElementById('schedTextInput').onkeydown = (e) => {
+    if (e.key === 'Enter') document.getElementById('schedAdd').click();
   };
 
   renderCarryOver(currentDay, data, key);
+}
+
+function migrateActivities(raw) {
+  const data = { ...raw };
+  if (!Array.isArray(data.activities)) {
+    const oldTodos = Array.isArray(raw.todos) ? raw.todos : [];
+    const oldSchedule = Array.isArray(raw.schedule) ? raw.schedule : [];
+    data.activities = [
+      ...oldTodos.map(t => ({ id: t.id || uid(), time: '', text: t.text, done: !!t.done, carried: t.carried })),
+      ...oldSchedule.map(s => ({ id: s.id || uid(), time: s.time || '', text: s.text, done: !!s.done })),
+    ];
+  }
+  delete data.todos;
+  delete data.schedule;
+  return data;
 }
 
 async function renderCarryOver(today, todayData, todayKey) {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const yKey = 'daily:' + fmtDate(yesterday);
-  const yData = await loadKey(yKey, null);
+  const yRaw = await loadKey(yKey, null);
   const card = document.getElementById('carryOverCard');
   const list = document.getElementById('carryOverList');
 
-  if (!yData || !Array.isArray(yData.todos)) { card.classList.add('hidden'); return; }
-  const pending = yData.todos.filter(t => !t.done && !t.carried);
+  if (!yRaw) { card.classList.add('hidden'); return; }
+  const yData = migrateActivities(yRaw);
+  const pending = yData.activities.filter(t => !t.done && !t.carried);
   if (pending.length === 0) { card.classList.add('hidden'); return; }
 
   card.classList.remove('hidden');
@@ -959,11 +1436,11 @@ async function renderCarryOver(today, todayData, todayKey) {
     row.innerHTML = `<span class="flex-1 text-sm text-navy-dark">${escapeHtml(t.text)}</span>
       <button class="text-xs font-semibold text-navy bg-white px-3 py-1.5 rounded-lg hover:bg-cream-2 shrink-0">Pindahkan</button>`;
     row.querySelector('button').onclick = async () => {
-      todayData.todos.push({ id: uid(), text: t.text, done: false });
+      todayData.activities.push({ id: uid(), time: '', text: t.text, done: false });
       t.carried = true;
       await saveKey(todayKey, todayData);
       await saveKey(yKey, yData);
-      renderTodoList('dailyTodoList', todayData.todos, async (todos) => { todayData.todos = todos; await saveKey(todayKey, todayData); });
+      renderActivities(todayData, todayKey);
       renderCarryOver(today, todayData, todayKey);
     };
     list.appendChild(row);
@@ -971,48 +1448,56 @@ async function renderCarryOver(today, todayData, todayKey) {
 
   document.getElementById('carryOverAll').onclick = async () => {
     pending.forEach(t => {
-      todayData.todos.push({ id: uid(), text: t.text, done: false });
+      todayData.activities.push({ id: uid(), time: '', text: t.text, done: false });
       t.carried = true;
     });
     await saveKey(todayKey, todayData);
     await saveKey(yKey, yData);
-    renderTodoList('dailyTodoList', todayData.todos, async (todos) => { todayData.todos = todos; await saveKey(todayKey, todayData); });
+    renderActivities(todayData, todayKey);
     renderCarryOver(today, todayData, todayKey);
   };
 }
 
-function renderSchedule(data, key) {
+function renderActivities(data, key) {
   const box = document.getElementById('dailySchedule');
   box.innerHTML = '';
-  const sorted = [...data.schedule].sort((a, b) => a.time.localeCompare(b.time));
-  if (sorted.length === 0) {
-    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada kegiatan terjadwal.</p>';
+  if (data.activities.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic">Belum ada tugas atau kegiatan.</p>';
     return;
   }
+  const sorted = [...data.activities].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   sorted.forEach(entry => {
     const row = document.createElement('div');
-    row.className = 'flex items-center gap-3 group';
+    row.className = 'flex flex-wrap items-center gap-3 group';
     row.innerHTML = `
-      <input type="time" value="${entry.time}" class="bg-cream-2 rounded-lg px-2 py-1.5 text-sm w-28 shrink-0">
-      <input type="text" value="${escapeHtml(entry.text)}" placeholder="Kegiatan…" class="flex-1 bg-cream-2 rounded-lg px-3 py-1.5 text-sm">
+      <input type="checkbox" class="todo-check shrink-0" ${entry.done ? 'checked' : ''}>
+      <input type="time" value="${entry.time || ''}" class="bg-cream-2 rounded-lg px-2 py-1.5 text-sm w-28 shrink-0">
+      <input type="text" value="${escapeHtml(entry.text)}" placeholder="Tugas / kegiatan…" class="flex-1 min-w-[120px] bg-cream-2 rounded-lg px-3 py-1.5 text-sm ${entry.done ? 'line-through text-muted' : ''}">
       <button class="icon-btn opacity-0 group-hover:opacity-100 p-1 shrink-0">
         <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       </button>`;
+    const checkInput = row.querySelector('.todo-check');
     const timeInput = row.querySelector('input[type="time"]');
     const textInput = row.querySelector('input[type="text"]');
+    checkInput.onchange = async (e) => {
+      entry.done = e.target.checked;
+      await saveKey(key, data);
+      textInput.classList.toggle('line-through', entry.done);
+      textInput.classList.toggle('text-muted', entry.done);
+    };
     timeInput.addEventListener('change', debounce(async () => {
       entry.time = timeInput.value;
       await saveKey(key, data);
-      renderSchedule(data, key);
+      renderActivities(data, key);
     }, 300));
     textInput.addEventListener('input', debounce(async () => {
       entry.text = textInput.value;
       await saveKey(key, data);
     }, 500));
     row.querySelector('button').onclick = async () => {
-      data.schedule = data.schedule.filter(e => e.id !== entry.id);
+      data.activities = data.activities.filter(e => e.id !== entry.id);
       await saveKey(key, data);
-      renderSchedule(data, key);
+      renderActivities(data, key);
     };
     box.appendChild(row);
   });
@@ -1145,7 +1630,7 @@ async function renderMonthly() {
     const nameEl = document.getElementById('incomeName');
     const amtEl = document.getElementById('incomeAmount');
     if (!nameEl.value.trim()) return;
-    data.incomes.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0 });
+    data.incomes.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, at: new Date().toISOString() });
     await addToHistory('history:incomes', nameEl.value);
     nameEl.value = ''; amtEl.value = '';
     await saveKey(key, data);
@@ -1158,7 +1643,7 @@ async function renderMonthly() {
     const nameEl = document.getElementById('catName');
     const amtEl = document.getElementById('catAmount');
     if (!nameEl.value.trim()) return;
-    data.categories.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0 });
+    data.categories.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, at: new Date().toISOString() });
     await addToHistory('history:categories', nameEl.value);
     nameEl.value = ''; amtEl.value = '';
     await saveKey(key, data);
@@ -1173,7 +1658,7 @@ async function renderMonthly() {
     const amtEl = document.getElementById('billAmount');
     const dueEl = document.getElementById('billDue');
     if (!nameEl.value.trim()) return;
-    data.bills.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, due: dueEl.value || '', paid: false });
+    data.bills.push({ id: uid(), name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, due: dueEl.value || '', paid: false, at: new Date().toISOString() });
     await addToHistory('history:bills', nameEl.value);
     nameEl.value = ''; amtEl.value = ''; dueEl.value = '';
     await saveKey(key, data);
@@ -1187,7 +1672,7 @@ async function renderMonthly() {
     const amtEl = document.getElementById('debtAmount');
     const dueEl = document.getElementById('debtDue');
     if (!nameEl.value.trim()) return;
-    data.debts.push({ id: uid(), type: typeEl.value, name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, due: dueEl.value || '', paid: false });
+    data.debts.push({ id: uid(), type: typeEl.value, name: nameEl.value.trim(), amount: Number(amtEl.value) || 0, due: dueEl.value || '', paid: false, at: new Date().toISOString() });
     await addToHistory('history:debts', nameEl.value);
     nameEl.value = ''; amtEl.value = ''; dueEl.value = '';
     await saveKey(key, data);
@@ -1218,7 +1703,10 @@ function renderBillList(data, key) {
     row.className = `flex flex-wrap items-center gap-3 group rounded-xl px-3 py-2.5 ${overdue ? 'bg-rust/10' : 'bg-cream-2'}`;
     row.innerHTML = `
       <input type="checkbox" class="todo-check" ${bill.paid ? 'checked' : ''}>
-      <span class="text-sm font-medium ${bill.paid ? 'line-through text-muted' : 'text-charcoal'}">${escapeHtml(bill.name)}</span>
+      <span class="flex flex-col">
+        <span class="text-sm font-medium ${bill.paid ? 'line-through text-muted' : 'text-charcoal'}">${escapeHtml(bill.name)}</span>
+        ${bill.at ? `<span class="text-[11px] text-muted">Dicatat ${fmtDateTime(bill.at)}</span>` : ''}
+      </span>
       ${bill.due ? `<span class="text-xs ${overdue ? 'text-rust font-semibold' : 'text-muted'}">Jatuh tempo ${bill.due.split('-').reverse().join('/')}${overdue ? ' · Lewat' : ''}</span>` : ''}
       <span class="ml-auto text-sm font-semibold text-navy-dark">${rupiah(bill.amount)}</span>
       <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
@@ -1255,7 +1743,10 @@ function renderCategoryList(data, key) {
     row.className = 'flex items-center gap-3 group';
     row.innerHTML = `
       <span class="w-3 h-3 rounded-full shrink-0" style="background:${palette[i % palette.length]}"></span>
-      <span class="flex-1 text-sm">${escapeHtml(cat.name)}</span>
+      <span class="flex-1 flex flex-col">
+        <span class="text-sm">${escapeHtml(cat.name)}</span>
+        ${cat.at ? `<span class="text-[11px] text-muted">Dicatat ${fmtDateTime(cat.at)}</span>` : ''}
+      </span>
       <span class="text-sm font-medium text-navy-dark">${rupiah(cat.amount)}</span>
       <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
         <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -1310,7 +1801,10 @@ function renderIncomeList(data, key) {
     row.className = 'flex items-center gap-3 group';
     row.innerHTML = `
       <span class="w-2 h-2 rounded-full bg-navy shrink-0"></span>
-      <span class="flex-1 text-sm">${escapeHtml(inc.name)}</span>
+      <span class="flex-1 flex flex-col">
+        <span class="text-sm">${escapeHtml(inc.name)}</span>
+        ${inc.at ? `<span class="text-[11px] text-muted">Dicatat ${fmtDateTime(inc.at)}</span>` : ''}
+      </span>
       <span class="text-sm font-medium text-navy-dark">${rupiah(inc.amount)}</span>
       <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
         <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -1354,7 +1848,10 @@ function renderDebtList(data, key) {
     row.innerHTML = `
       <input type="checkbox" class="todo-check" ${debt.paid ? 'checked' : ''}>
       <span class="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full ${isHutang ? 'bg-rust/15 text-rust' : 'bg-navy/10 text-navy'}">${isHutang ? 'Hutang' : 'Piutang'}</span>
-      <span class="text-sm font-medium ${debt.paid ? 'line-through text-muted' : 'text-charcoal'}">${escapeHtml(debt.name)}</span>
+      <span class="flex flex-col">
+        <span class="text-sm font-medium ${debt.paid ? 'line-through text-muted' : 'text-charcoal'}">${escapeHtml(debt.name)}</span>
+        ${debt.at ? `<span class="text-[11px] text-muted">Dicatat ${fmtDateTime(debt.at)}</span>` : ''}
+      </span>
       ${debt.due ? `<span class="text-xs ${overdue ? 'text-rust font-semibold' : 'text-muted'}">${isHutang ? 'Jatuh tempo' : 'Ditagih'} ${debt.due.split('-').reverse().join('/')}${overdue ? ' · Lewat' : ''}</span>` : ''}
       <span class="ml-auto text-sm font-semibold text-navy-dark">${rupiah(debt.amount)}</span>
       <button class="icon-btn opacity-0 group-hover:opacity-100 p-1">
@@ -1723,6 +2220,219 @@ document.getElementById('calPicker').onchange = (e) => {
   renderCalendar();
 };
 
+/* ===================== CATATAN (folder & file bebas) ===================== */
+let catatanItems = [];
+let catatanCurrentFolder = null; // null = root
+let catatanOpenFileId = null;
+
+async function loadCatatanItems() {
+  catatanItems = await loadKey('catatan:items', []);
+  if (!Array.isArray(catatanItems)) catatanItems = [];
+}
+
+async function saveCatatanItems() {
+  await saveKey('catatan:items', catatanItems);
+}
+
+async function renderCatatan() {
+  await loadCatatanItems();
+  catatanOpenFileId = null;
+  document.getElementById('catatanEditor').classList.add('hidden');
+  document.getElementById('catatanListView').classList.remove('hidden');
+  renderCatatanBreadcrumb();
+  renderCatatanList();
+}
+
+function catatanPathTo(folderId) {
+  const path = [];
+  let cur = folderId;
+  while (cur) {
+    const f = catatanItems.find(i => i.id === cur && i.type === 'folder');
+    if (!f) break;
+    path.unshift(f);
+    cur = f.parentId;
+  }
+  return path;
+}
+
+function renderCatatanBreadcrumb() {
+  const box = document.getElementById('catatanBreadcrumb');
+  box.innerHTML = '';
+  const rootBtn = document.createElement('button');
+  rootBtn.className = `font-serif text-lg ${catatanCurrentFolder === null ? 'text-navy-dark font-semibold' : 'text-sky-mid hover:underline'}`;
+  rootBtn.textContent = 'Catatan';
+  rootBtn.onclick = () => { catatanCurrentFolder = null; renderCatatanBreadcrumb(); renderCatatanList(); };
+  box.appendChild(rootBtn);
+
+  const path = catatanPathTo(catatanCurrentFolder);
+  path.forEach(folder => {
+    const sep = document.createElement('span');
+    sep.className = 'text-muted mx-0.5';
+    sep.textContent = '/';
+    box.appendChild(sep);
+    const btn = document.createElement('button');
+    const isCurrent = folder.id === catatanCurrentFolder;
+    btn.className = `font-serif text-lg ${isCurrent ? 'text-navy-dark font-semibold' : 'text-sky-mid hover:underline'}`;
+    btn.textContent = folder.name;
+    btn.onclick = () => { catatanCurrentFolder = folder.id; renderCatatanBreadcrumb(); renderCatatanList(); };
+    box.appendChild(btn);
+  });
+}
+
+function catatanCountChildren(folderId) {
+  return catatanItems.filter(i => i.parentId === folderId).length;
+}
+
+function renderCatatanList() {
+  const box = document.getElementById('catatanList');
+  box.innerHTML = '';
+  const children = catatanItems.filter(i => i.parentId === catatanCurrentFolder);
+  const folders = children.filter(i => i.type === 'folder').sort((a, b) => a.name.localeCompare(b.name));
+  const files = children.filter(i => i.type === 'file').sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+
+  if (folders.length === 0 && files.length === 0) {
+    box.innerHTML = '<p class="text-sm text-muted italic py-2">Folder ini masih kosong. Buat folder atau catatan baru di atas.</p>';
+    return;
+  }
+
+  const makeRow = (item) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 group rounded-xl px-3 py-2.5 hover:bg-cream-2 cursor-pointer';
+    const isFolder = item.type === 'folder';
+    const iconSvg = isFolder
+      ? `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" class="shrink-0"><path d="M2 5C2 4.4 2.4 4 3 4H7L8.8 6H15C15.6 6 16 6.4 16 7V13C16 13.6 15.6 14 15 14H3C2.4 14 2 13.6 2 13V5Z" fill="#DDEAF5" stroke="#8FB4D1" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" class="shrink-0"><path d="M5 2H11L14 5V15C14 15.6 13.6 16 13 16H5C4.4 16 4 15.6 4 15V3C4 2.4 4.4 2 5 2Z" fill="#FAF8F3" stroke="#8FB4D1" stroke-width="1.2" stroke-linejoin="round"/><path d="M11 2V5H14" stroke="#8FB4D1" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+    const meta = isFolder
+      ? `${catatanCountChildren(item.id)} item`
+      : (item.updatedAt ? `Diubah ${fmtDateTime(item.updatedAt)}` : '');
+    let reminderBadge = '';
+    if (!isFolder) {
+      const summary = cnGetItemReminderSummary(item);
+      if (summary) {
+        const badgeColor = summary.overdue ? 'text-rust bg-rust/10' : 'text-navy bg-sky/60';
+        reminderBadge = `<span class="flex items-center gap-1 text-[11px] font-medium shrink-0 px-2 py-1 rounded-full ${badgeColor}" title="Tugas terdekat di catatan ini">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M2 5.5H12" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 2V4M9.5 2V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          ${fmtDateTime(summary.date)}
+        </span>`;
+      }
+    }
+    row.innerHTML = `
+      ${iconSvg}
+      <span class="flex-1 text-sm font-medium text-charcoal truncate">${escapeHtml(item.name)}</span>
+      ${reminderBadge}
+      <span class="text-xs text-muted shrink-0 hidden sm:inline">${meta}</span>
+      <button class="rename-btn icon-btn opacity-0 group-hover:opacity-100 p-1 shrink-0" title="Ganti nama">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M10.5 2L13 4.5L5 12.5H2.5V10L10.5 2Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="delete-btn icon-btn opacity-0 group-hover:opacity-100 p-1 shrink-0 hover:text-rust" title="Hapus">
+        <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M3 4H12M6 4V2.8C6 2.4 6.3 2 6.7 2H8.3C8.7 2 9 2.4 9 2.8V4M5 4V12C5 12.5 5.5 13 6 13H9C9.5 13 10 12.5 10 12V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>`;
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.rename-btn') || e.target.closest('.delete-btn')) return;
+      if (isFolder) { catatanCurrentFolder = item.id; renderCatatanBreadcrumb(); renderCatatanList(); }
+      else { openCatatanFile(item.id); }
+    });
+    row.querySelector('.rename-btn').onclick = async () => {
+      const baru = prompt('Ganti nama jadi:', item.name);
+      if (baru === null || !baru.trim()) return;
+      item.name = baru.trim();
+      await saveCatatanItems();
+      renderCatatanList();
+    };
+    row.querySelector('.delete-btn').onclick = async () => {
+      const msg = isFolder
+        ? `Hapus folder "${item.name}" beserta semua isinya? Tindakan ini tidak bisa dibatalkan.`
+        : `Hapus catatan "${item.name}"? Tindakan ini tidak bisa dibatalkan.`;
+      if (!confirm(msg)) return;
+      const idsToDelete = new Set([item.id]);
+      if (isFolder) {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          catatanItems.forEach(i => {
+            if (i.parentId && idsToDelete.has(i.parentId) && !idsToDelete.has(i.id)) {
+              idsToDelete.add(i.id);
+              changed = true;
+            }
+          });
+        }
+      }
+      catatanItems = catatanItems.filter(i => !idsToDelete.has(i.id));
+      await saveCatatanItems();
+      renderCatatanList();
+      renderCatatanBreadcrumb();
+    };
+    return row;
+  };
+
+  folders.forEach(f => box.appendChild(makeRow(f)));
+  files.forEach(f => box.appendChild(makeRow(f)));
+}
+
+document.getElementById('catatanNewFolder').onclick = async () => {
+  const nama = prompt('Nama folder baru:');
+  if (nama === null || !nama.trim()) return;
+  catatanItems.push({ id: uid(), type: 'folder', name: nama.trim(), parentId: catatanCurrentFolder });
+  await saveCatatanItems();
+  renderCatatanList();
+};
+
+document.getElementById('catatanNewFile').onclick = async () => {
+  const nama = prompt('Nama catatan baru:', 'Catatan Baru');
+  if (nama === null || !nama.trim()) return;
+  const item = { id: uid(), type: 'file', name: nama.trim(), parentId: catatanCurrentFolder, content: '', updatedAt: new Date().toISOString() };
+  catatanItems.push(item);
+  await saveCatatanItems();
+  renderCatatanList();
+  openCatatanFile(item.id);
+};
+
+function openCatatanFile(id) {
+  const item = catatanItems.find(i => i.id === id && i.type === 'file');
+  if (!item) return;
+  catatanOpenFileId = id;
+  document.getElementById('catatanListView').classList.add('hidden');
+  const editor = document.getElementById('catatanEditor');
+  editor.classList.remove('hidden');
+  const titleEl = document.getElementById('catatanEditorTitle');
+  const contentEl = document.getElementById('catatanEditorContent');
+  titleEl.value = item.name;
+  const raw = item.content || '';
+  // Kompatibel dengan catatan lama (teks polos dari textarea)
+  contentEl.innerHTML = raw.trim().startsWith('<') ? raw : legacyPlainTextToHtml(raw);
+
+  const savePill = document.getElementById('catatanEditorSaved');
+  const doSave = debounce(async () => {
+    item.name = titleEl.value.trim() || 'Tanpa judul';
+    item.content = contentEl.innerHTML;
+    item.updatedAt = new Date().toISOString();
+    await saveCatatanItems();
+    savePill.classList.add('show');
+    clearTimeout(window.__catatanSaveTimer);
+    window.__catatanSaveTimer = setTimeout(() => savePill.classList.remove('show'), 1200);
+  }, 500);
+  titleEl.oninput = doSave;
+  contentEl.oninput = doSave;
+
+  cnInitEditorToolbar(doSave);
+
+  document.getElementById('catatanEditorDelete').onclick = async () => {
+    if (!confirm(`Hapus catatan "${item.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+    catatanItems = catatanItems.filter(i => i.id !== item.id);
+    await saveCatatanItems();
+    closeCatatanEditor();
+  };
+  document.getElementById('catatanEditorBack').onclick = closeCatatanEditor;
+}
+
+function closeCatatanEditor() {
+  catatanOpenFileId = null;
+  document.getElementById('catatanEditor').classList.add('hidden');
+  document.getElementById('catatanListView').classList.remove('hidden');
+  renderCatatanBreadcrumb();
+  renderCatatanList();
+}
+
 /* ===================== INIT ===================== */
 /* ===================== RESET PER MENU ===================== */
 document.getElementById('resetHarian').onclick = async () => {
@@ -1759,6 +2469,11 @@ document.getElementById('resetKalender').onclick = async () => {
   await renderMonthly();
   await renderYearly();
   await renderCalendar();
+  await renderCatatan();
+
+  // Cek pengingat catatan: sekali saat buka, lalu berulang tiap 20 detik
+  cnCheckReminders();
+  setInterval(cnCheckReminders, 20000);
 })();
 </script>
 
