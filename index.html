@@ -451,12 +451,12 @@
         <div class="bg-cream-2 rounded-xl px-4 py-2.5">
           <label class="text-xs text-muted font-medium">Total Pemasukan</label>
           <p id="monthIncomeTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
-          <p class="text-[10px] text-muted mt-0.5">Termasuk hutang diterima & piutang lunas</p>
+          <p class="text-[10px] text-muted mt-0.5">Termasuk hutang yang belum lunas</p>
         </div>
         <div class="bg-cream-2 rounded-xl px-4 py-2.5">
           <label class="text-xs text-muted font-medium">Total Pengeluaran</label>
           <p id="monthExpenseTotal" class="font-serif text-lg text-navy-dark mt-1">Rp0</p>
-          <p class="text-[10px] text-muted mt-0.5">Termasuk tagihan & hutang terbayar + piutang belum diterima</p>
+          <p class="text-[10px] text-muted mt-0.5">Termasuk tagihan & piutang belum diterima</p>
         </div>
         <div class="bg-sky rounded-xl px-4 py-2.5">
           <label class="text-xs text-navy-dark/70 font-medium">Sisa / Tabungan</label>
@@ -1769,16 +1769,14 @@ function billsPaidTotal(data) {
 function debtsPaidTotals(data) {
   const debts = data.debts || [];
   // Hutang belum lunas = uang pinjaman sudah di tangan → menambah saldo (pemasukan)
-  // Hutang sudah lunas = uang dipakai membayar → mengurangi saldo (pengeluaran)
+  // Hutang sudah lunas = uang itu sudah dipakai buat bayar utangnya sendiri → efeknya netral lagi (bukan pengeluaran baru)
   const hutangUnpaid = debts.filter(d => d.type === 'hutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const hutangPaid = debts.filter(d => d.type === 'hutang' && d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  // Piutang belum lunas = uang sudah dipinjamkan/keluar → mengurangi saldo (pengeluaran)
-  // Piutang sudah lunas = uang diterima kembali → menambah saldo (pemasukan)
+  // Piutang belum diterima = uang sudah dipinjamkan/keluar → mengurangi saldo (pengeluaran)
+  // Piutang sudah lunas/diterima = uangnya kembali → efeknya netral lagi (bukan pemasukan baru)
   const piutangUnpaid = debts.filter(d => d.type === 'piutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const piutangPaid = debts.filter(d => d.type === 'piutang' && d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
-  const income = hutangUnpaid + piutangPaid;
-  const expense = hutangPaid + piutangUnpaid;
+  const income = hutangUnpaid;
+  const expense = piutangUnpaid;
   return { expense, income };
 }
 
@@ -1891,9 +1889,7 @@ function drawDonut(data) {
   const billsExpense = billsPaidTotal(data);
   if (billsExpense > 0) categories.push({ id: 'bills-agg', name: 'Tagihan Terbayar', amount: billsExpense });
   const debts = data.debts || [];
-  const hutangPaid = debts.filter(d => d.type === 'hutang' && d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const piutangUnpaid = debts.filter(d => d.type === 'piutang' && !d.paid).reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  if (hutangPaid > 0) categories.push({ id: 'hutang-agg', name: 'Hutang Terbayar', amount: hutangPaid });
   if (piutangUnpaid > 0) categories.push({ id: 'piutang-agg', name: 'Piutang Belum Diterima', amount: piutangUnpaid });
 
   const canvas = document.getElementById('donutChart');
@@ -1987,12 +1983,12 @@ document.getElementById('downloadExcel').onclick = async () => {
     ['Sumber Pemasukan', 'Jumlah (Rp)'],
     ...incomes.map(i => [i.name, Number(i.amount) || 0]),
     [],
-    ['Total Pemasukan (termasuk piutang diterima)', incomeTotal],
+    ['Total Pemasukan (termasuk hutang belum lunas)', incomeTotal],
     [],
     ['Kategori', 'Jumlah (Rp)'],
     ...data.categories.map(c => [c.name, Number(c.amount) || 0]),
     [],
-    ['Total Pengeluaran (termasuk tagihan & hutang terbayar)', totalExpense],
+    ['Total Pengeluaran (termasuk tagihan & piutang belum diterima)', totalExpense],
     ['Sisa / Tabungan', sisa],
     [],
     ['Tagihan', 'Jumlah (Rp)', 'Jatuh Tempo', 'Status'],
